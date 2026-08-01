@@ -1,0 +1,75 @@
+:root {
+    /* Brand palette (per brief) */
+    --color-primary: #2563EB;
+    --color-primary-dark: #1D4ED8;
+    --color-primary-light: #DBEAFE;
+    --color-secondary: #7C3AED;
+    --color-secondary-light: #EDE4FC;
+    --color-accent: #10B981;
+    --color-accent-light: #D1FAE5;
+
+    --color-danger: #EF4444;
+    --color-danger-light: #FEE2E2;
+    --color-warning: #F59E0B;
+    --color-warning-light: #FEF3C7;
+
+    /* Neutrals */
+    --color-bg: #F5F7FA;
+    --color-bg-alt: #EEF1F6;
+    --color-surface: #FFFFFF;
+    --color-surface-glass: rgba(255, 255, 255, 0.72);
+    --color-border: #E4E8F0;
+    --color-text: #1E2433;
+    --color-text-muted: #64748B;
+    --color-text-faint: #94A3B8;
+
+    /* Typography */
+    --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+    --font-body: 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Radii */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(30, 41, 59, 0.06), 0 1px 3px rgba(30, 41, 59, 0.05);
+    --shadow-md: 0 4px 14px rgba(30, 41, 59, 0.08), 0 2px 4px rgba(30, 41, 59, 0.04);
+    --shadow-lg: 0 12px 32px rgba(30, 41, 59, 0.12), 0 4px 10px rgba(30, 41, 59, 0.06);
+    --shadow-glow-primary: 0 8px 24px rgba(37, 99, 235, 0.25);
+    --shadow-glow-secondary: 0 8px 24px rgba(124, 58, 237, 0.22);
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-fast: 0.16s var(--ease-out);
+    --transition-base: 0.26s var(--ease-out);
+    --transition-slow: 0.45s var(--ease-out);
+
+    /* Layout */
+    --container-width: 1240px;
+    --navbar-height: 72px;
+}
+
+[data-theme="dark"] {
+    --color-bg: #0F1420;
+    --color-bg-alt: #151B2C;
+    --color-surface: #1A2033;
+    --color-surface-glass: rgba(26, 32, 51, 0.72);
+    --color-border: #2A3247;
+    --color-text: #E7EAF2;
+    --color-text-muted: #9AA5BC;
+    --color-text-faint: #6B7690;
+
+    --color-primary-light: #1E2E52;
+    --color-secondary-light: #2C2350;
+    --color-accent-light: #123B31;
+    --color-danger-light: #401D22;
+    --color-warning-light: #3D2E10;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+}

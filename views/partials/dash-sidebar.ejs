@@ -1,0 +1,21 @@
+<aside class="dash-sidebar">
+    <div class="dash-sidebar-profile">
+        <img src="<%= locals.currentUser.profile_image %>" alt="<%= locals.currentUser.name %>">
+        <strong><%= locals.currentUser.name %></strong>
+        <span><%= locals.currentUser.email %></span>
+    </div>
+    <nav class="dash-nav">
+        <a href="/dashboard" class="<%= activePage === 'dashboard' ? 'active' : '' %>">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+            Dashboard
+        </a>
+        <a href="/upload" class="<%= activePage === 'upload' ? 'active' : '' %>">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 4v13m0 0l-4.5-4.5M12 17l4.5-4.5M4 21h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Upload a Note
+        </a>
+        <a href="/browse">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Browse Notes
+        </a>
+    </nav>
+</aside>

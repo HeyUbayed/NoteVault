@@ -1,0 +1,18 @@
+<%
+function buildQuery(page) {
+    return baseUrl + '?page=' + page;
+}
+%>
+<% if (totalPages > 1) { %>
+<div class="pagination">
+    <a href="<%= buildQuery(Math.max(currentPage - 1, 1)) %>" class="page-link <%= currentPage === 1 ? 'disabled' : '' %>">‹</a>
+    <%
+    let start = Math.max(currentPage - 2, 1);
+    let end = Math.min(start + 4, totalPages);
+    start = Math.max(end - 4, 1);
+    for (let p = start; p <= end; p++) { %>
+        <a href="<%= buildQuery(p) %>" class="page-link <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+    <% } %>
+    <a href="<%= buildQuery(Math.min(currentPage + 1, totalPages)) %>" class="page-link <%= currentPage === totalPages ? 'disabled' : '' %>">›</a>
+</div>
+<% } %>

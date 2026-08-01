@@ -1,0 +1,74 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <div class="container" style="max-width: 1000px;">
+        <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Browse Notes', url: '/browse' }, { label: note.title }] }) %>
+        <% if (justUploaded) { %>
+            <div class="form-success-box mt-3">🎉 Your note is live!</div>
+        <% } %>
+
+        <div style="display:grid; grid-template-columns: 300px 1fr; gap: 34px; margin-top: 24px;" class="note-details-grid">
+            <div>
+                <div class="note-card-thumb" style="border-radius: var(--radius-lg); border: 1px solid var(--color-border); aspect-ratio: 3/4;">
+                    <img src="<%= note.thumbnail %>" alt="<%= note.title %>">
+                </div>
+
+                <% if (locals.currentUser && locals.currentUser.id === note.uploaded_by) { %>
+                    <div class="badge badge-primary mt-2">Your Upload</div>
+                <% } %>
+
+                <div class="mt-3">
+                    <% if (locals.currentUser) { %>
+                        <a href="/notes/<%= note.id %>/download" class="btn btn-primary btn-block btn-lg">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Download Note
+                        </a>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-primary btn-block btn-lg">Log In to Download</a>
+                    <% } %>
+                </div>
+            </div>
+
+            <div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 12px;">
+                    <span class="badge badge-primary"><%= note.department %></span>
+                    <span class="badge badge-secondary"><%= note.semester %></span>
+                    <% if (note.tags) { note.tags.split(',').forEach(function(t) { if(t.trim()) { %>
+                        <span class="badge badge-neutral">#<%= t.trim() %></span>
+                    <% } }) } %>
+                </div>
+
+                <h1 style="font-size: 1.8rem; margin-bottom: 10px;"><%= note.title %></h1>
+
+                <div style="display:flex; align-items:center; gap: 16px; flex-wrap:wrap; margin-bottom: 18px;">
+                    <span class="text-muted" style="font-size:0.85rem; display:flex; align-items:center; gap:5px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <%= note.downloads %> downloads
+                    </span>
+                </div>
+
+                <div class="note-card-uploader mb-3" style="display:inline-flex;">
+                    <img src="<%= note.uploader_image %>" alt="">
+                    <span>Uploaded by <strong><%= note.uploader_name %></strong> · <%= new Date(note.upload_date).toLocaleDateString() %></span>
+                </div>
+
+                <div class="data-table-wrap mb-3" style="padding: 20px;">
+                    <h3 style="font-size:1rem; margin-bottom:10px;">About this note</h3>
+                    <p class="text-muted"><%= note.description || 'No description provided.' %></p>
+                    <div class="mt-2" style="display:grid; grid-template-columns: repeat(2,1fr); gap: 10px; font-size: 0.85rem;">
+                        <div><span class="text-muted">Course:</span> <strong><%= note.course %></strong></div>
+                        <div><span class="text-muted">Teacher:</span> <strong><%= note.teacher || 'N/A' %></strong></div>
+                        <div><span class="text-muted">File size:</span> <strong><%= note.file_size ? (note.file_size / (1024*1024)).toFixed(2) + ' MB' : 'N/A' %></strong></div>
+                        <div><span class="text-muted">Semester:</span> <strong><%= note.semester %></strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+@media (max-width: 760px) { .note-details-grid { grid-template-columns: 1fr !important; } }
+</style>
+
+<%- include('partials/footer') %>

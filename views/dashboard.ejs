@@ -1,0 +1,55 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <div class="container">
+<%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Dashboard' }] }) %>
+        <div class="page-header">
+            <h1>Welcome back, <%= user.name.split(' ')[0] %> 👋</h1>
+            <p>Here's what's happening with your notes.</p>
+        </div>
+
+        <div class="dash-layout">
+            <%- include('partials/dash-sidebar', { activePage: 'dashboard' }) %>
+
+            <div>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-icon" style="background: var(--color-primary-light); color: var(--color-primary);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/></svg>
+                        </div>
+                        <strong><%= totalMyNotes %></strong>
+                        <span>Notes Uploaded</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon" style="background: var(--color-accent-light); color: #067A55;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <strong><%= stats.total_downloads_received || 0 %></strong>
+                        <span>Downloads Received</span>
+                    </div>
+                </div>
+
+                <div class="section-head">
+                    <div><h2 style="font-size:1.2rem;">Your Notes</h2></div>
+                    <a href="/upload" class="section-link">+ Upload New</a>
+                </div>
+
+                <% if (myNotes.length === 0) { %>
+                    <div class="empty-state">
+                        <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.4"/></svg>
+                        <h3>No notes uploaded yet</h3>
+                        <p class="mb-2">Share your first note with the community.</p>
+                        <a href="/upload" class="btn btn-primary">Upload a Note</a>
+                    </div>
+                <% } else { %>
+                    <div class="grid-cards mb-4">
+                        <% myNotes.forEach(function(n) { %>
+                            <%- include('partials/note-card', { note: Object.assign({}, n, { uploader_name: user.name, uploader_image: user.profile_image }) }) %>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</main>
+<%- include('partials/footer') %>

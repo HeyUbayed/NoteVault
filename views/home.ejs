@@ -1,0 +1,100 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <section class="hero">
+        <div class="container hero-inner">
+            <div>
+                <span class="hero-eyebrow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z" fill="currentColor"/></svg>
+                    Trusted by students across every department
+                </span>
+                <h1>Share notes. <span class="accent-text">Help each other.</span><br>Ace every exam.</h1>
+                <p class="lede">NoteVault is where students upload the notes that got them an A, and download the ones they need to succeed.</p>
+                <div class="hero-cta">
+                    <a href="/browse" class="btn btn-primary btn-lg">Browse Notes</a>
+                    <% if (!locals.currentUser) { %>
+                        <a href="/register" class="btn btn-outline btn-lg">Join for Free</a>
+                    <% } else { %>
+                        <a href="/upload" class="btn btn-outline btn-lg">Upload a Note</a>
+                    <% } %>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat"><strong><%= stats.total_notes %></strong><span>Notes Shared</span></div>
+                    <div class="hero-stat"><strong><%= stats.total_users %></strong><span>Students</span></div>
+                    <div class="hero-stat"><strong><%= stats.total_downloads %></strong><span>Downloads</span></div>
+                    <div class="hero-stat"><strong><%= stats.total_departments %></strong><span>Departments</span></div>
+                </div>
+            </div>
+            <div class="note-stack">
+                <div class="stack-card stack-card-1">
+                    <span class="stack-tag">CSE</span>
+                    <h4>Data Structures Midterm</h4>
+                    <div class="stack-bar"><span></span></div>
+                    <div class="stack-meta"><span>312 downloads</span></div>
+                </div>
+                <div class="stack-card stack-card-2">
+                    <span class="stack-tag">EEE</span>
+                    <h4>Digital Logic Design</h4>
+                    <div class="stack-bar"><span></span></div>
+                    <div class="stack-meta"><span>204 downloads</span></div>
+                </div>
+                <div class="stack-card stack-card-3">
+                    <span class="stack-tag">BBA</span>
+                    <h4>Principles of Marketing</h4>
+                    <div class="stack-bar"><span></span></div>
+                    <div class="stack-meta"><span>158 downloads</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <div><h2>Explore by Department</h2><p>Find notes organized by your field of study</p></div>
+                <a href="/browse" class="section-link">View all →</a>
+            </div>
+            <div class="dept-pill-grid">
+                <% departments.forEach(function(d) { %>
+                    <a href="/browse" class="dept-pill">
+                        <span class="dept-pill-icon"><%= d.department.substring(0,2).toUpperCase() %></span>
+                        <div><strong><%= d.department %></strong><span><%= d.notes_count %> notes</span></div>
+                    </a>
+                <% }) %>
+                <% if (departments.length === 0) { %>
+                    <p class="text-muted">No notes uploaded yet — be the first to share!</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" style="background: var(--color-bg-alt);">
+        <div class="container">
+            <div class="section-head">
+                <div><h2>Freshly Uploaded</h2><p>The latest notes added by the community</p></div>
+                <a href="/browse" class="section-link">View all →</a>
+            </div>
+            <div class="grid-cards">
+                <% latest.forEach(function(n) { %>
+                    <%- include('partials/note-card', { note: n }) %>
+                <% }) %>
+                <% if (latest.length === 0) { %>
+                    <p class="text-muted">Nothing here yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container text-center">
+            <h2 class="mb-2">Ready to share what you know?</h2>
+            <p class="text-muted mb-3">Upload your notes and help fellow students across campus.</p>
+            <% if (!locals.currentUser) { %>
+                <a href="/register" class="btn btn-primary btn-lg">Create Your Free Account</a>
+            <% } else { %>
+                <a href="/upload" class="btn btn-primary btn-lg">Upload Your First Note</a>
+            <% } %>
+        </div>
+    </section>
+</main>
+<%- include('partials/footer') %>

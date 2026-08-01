@@ -1,0 +1,67 @@
+<header class="navbar" id="navbar">
+    <div class="navbar-inner">
+        <a href="/" class="brand">
+            <span class="brand-mark">
+                <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="16" height="20" rx="2.5" fill="var(--color-primary)" opacity="0.15"/>
+                    <rect x="5" y="4" width="16" height="20" rx="2.5" fill="var(--color-primary)"/>
+                    <line x1="8.5" y1="9" x2="17.5" y2="9" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                    <line x1="8.5" y1="13" x2="17.5" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                    <line x1="8.5" y1="17" x2="14" y2="17" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <span class="brand-name">NoteVault</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="/browse" class="nav-link <%= typeof title !== 'undefined' && title === 'Browse Notes' ? 'active' : '' %>">Browse</a>
+            <% if (locals.currentUser) { %>
+                <a href="/upload" class="btn btn-primary btn-sm nav-upload-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                    Upload
+                </a>
+                <div class="profile-menu">
+                    <button class="profile-trigger" id="profileTrigger">
+                        <img src="<%= locals.currentUser.profile_image || '/images/default-avatar.png' %>" alt="<%= locals.currentUser.name %>" class="avatar-sm">
+                    </button>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-dropdown-header">
+                            <img src="<%= locals.currentUser.profile_image || '/images/default-avatar.png' %>" alt="">
+                            <div>
+                                <strong><%= locals.currentUser.name %></strong>
+                                <span><%= locals.currentUser.email %></span>
+                            </div>
+                        </div>
+                        <a href="/dashboard">Dashboard</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="text-danger">Log Out</a>
+                    </div>
+                </div>
+            <% } else { %>
+                <a href="/login" class="nav-link">Log In</a>
+                <a href="/register" class="btn btn-primary btn-sm">Sign Up Free</a>
+            <% } %>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </nav>
+    </div>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/browse">Browse Notes</a>
+        <% if (locals.currentUser) { %>
+            <a href="/upload">Upload a Note</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout" class="text-danger">Log Out</a>
+        <% } else { %>
+            <a href="/login">Log In</a>
+            <a href="/register">Sign Up</a>
+        <% } %>
+    </div>
+</header>
+<% if (locals.currentUser) { %>
+<a href="/upload" class="fab" title="Upload a note" aria-label="Upload a note">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="white" stroke-width="2.4" stroke-linecap="round"/></svg>
+</a>
+<% } %>
+<div class="toast-container" id="toastContainer"></div>

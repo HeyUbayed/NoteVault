@@ -1,0 +1,97 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <div class="container" style="max-width: 720px;">
+<%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Dashboard', url: '/dashboard' }, { label: 'Upload a Note' }] }) %>
+        <div class="page-header">
+            <h1>Upload a Note</h1>
+            <p>Share your notes with fellow students.</p>
+        </div>
+
+        <% if (errors && errors.length > 0) { %>
+            <div class="form-error-box">
+                <ul><% errors.forEach(function(e) { %><li><%= e.msg %></li><% }) %></ul>
+            </div>
+        <% } %>
+
+        <form method="POST" action="/upload" enctype="multipart/form-data" id="uploadForm" class="mt-3">
+            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+            <div class="form-group">
+                <label class="form-label">PDF File <span class="text-danger">*</span></label>
+                <div class="file-drop" id="pdfDrop">
+                    <input type="file" name="pdf" accept="application/pdf" required>
+                    <div class="file-drop-icon">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="margin:0 auto;"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.5"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </div>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <span class="form-hint">PDF only, up to 15MB</span>
+                    <div class="file-drop-filename" id="pdfDropLabel"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Thumbnail Image <span class="text-muted">(optional)</span></label>
+                <div class="file-drop" id="thumbDrop">
+                    <input type="file" name="thumbnail" accept="image/*">
+                    <div class="file-drop-icon">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="margin:0 auto;"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="M21 15l-5-5-9 9" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </div>
+                    <p><strong>Click to upload</strong> a cover image</p>
+                    <span class="form-hint">JPG, PNG, or WEBP, up to 3MB</span>
+                    <div class="file-drop-filename" id="thumbDropLabel"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="title">Title <span class="text-danger">*</span></label>
+                <input type="text" id="title" name="title" class="form-control" placeholder="e.g. Data Structures Midterm Notes" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="description">Description</label>
+                <textarea id="description" name="description" class="form-control" placeholder="Briefly describe what's covered in these notes..."></textarea>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="form-group">
+                    <label class="form-label" for="department">Department <span class="text-danger">*</span></label>
+                    <select id="department" name="department" class="form-control" required>
+                        <option value="">Select department</option>
+                        <option>CSE</option><option>EEE</option><option>BBA</option><option>English</option>
+                        <option>Civil Engineering</option><option>Pharmacy</option><option>Economics</option><option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="semester">Semester <span class="text-danger">*</span></label>
+                    <select id="semester" name="semester" class="form-control" required>
+                        <option value="">Select semester</option>
+                        <% for (let i = 1; i <= 12; i++) { %>
+                            <option><%= i %><%= i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th' %> Semester</option>
+                        <% } %>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="course">Course Name <span class="text-danger">*</span></label>
+                <input type="text" id="course" name="course" class="form-control" placeholder="e.g. Data Structures" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="teacher">Teacher Name</label>
+                <input type="text" id="teacher" name="teacher" class="form-control" placeholder="e.g. Dr. Asif Rahman">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="tags">Tags <span class="text-muted">(comma separated)</span></label>
+                <input type="text" id="tags" name="tags" class="form-control" placeholder="e.g. arrays, linked list, midterm">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 4v13m0 0l-4.5-4.5M12 17l4.5-4.5M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Upload Note
+            </button>
+        </form>
+    </div>
+</main>
+<%- include('partials/footer', { extraJs: ['/js/upload.js'] }) %>

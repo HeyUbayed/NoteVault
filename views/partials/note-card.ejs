@@ -1,0 +1,24 @@
+<div class="note-card">
+    <a href="/notes/<%= note.id %>" class="note-card-thumb">
+        <img src="<%= note.thumbnail %>" alt="<%= note.title %>" loading="lazy">
+        <span class="note-card-dept-badge"><%= note.department %></span>
+    </a>
+    <div class="note-card-body">
+        <a href="/notes/<%= note.id %>"><h3 class="note-card-title"><%= note.title %></h3></a>
+        <div class="note-card-meta">
+            <span><%= note.course %></span>
+            <span>·</span>
+            <span><%= note.semester %></span>
+        </div>
+        <div class="note-card-uploader">
+            <% if (note.uploader_image) { %><img src="<%= note.uploader_image %>" alt=""><% } %>
+            <span><%= note.uploader_name %></span>
+        </div>
+        <div class="note-card-footer">
+            <span class="text-muted" style="font-size:0.78rem; display:flex; align-items:center; gap:4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <%= note.downloads %>
+            </span>
+        </div>
+    </div>
+</div>
