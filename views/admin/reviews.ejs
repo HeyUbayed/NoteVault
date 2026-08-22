@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Manage Reviews · NoteVault Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<%- include('_sidebar', { activeAdmin: 'reviews' }) %>
+    <nav class="breadcrumb" style="margin-top:0; margin-bottom: 10px;"><a href="/admin">Admin</a><span class="breadcrumb-sep">/</span><span class="breadcrumb-current">Manage Reviews</span></nav>
+    <div class="admin-topbar">
+        <div><h1>Manage Reviews</h1><p class="text-muted">Moderate star ratings and written reviews left on notes.</p></div>
+    </div>
+
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Note</th><th>Reviewer</th><th>Rating</th><th>Review</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+                <% if (reviews.length === 0) { %>
+                    <tr><td colspan="6" class="text-center text-muted" style="padding: 40px;">No reviews yet.</td></tr>
+                <% } %>
+                <% reviews.forEach(function(r) { %>
+                    <tr>
+                        <td><a href="/admin/notes/<%= r.note_id %>/view" target="_blank" style="font-weight:600;"><%= r.note_title %></a></td>
+                        <td>
+                            <div class="cell-user">
+                                <img src="<%= r.user_image %>" alt="">
+                                <span><%= r.user_name %></span>
+                            </div>
+                        </td>
+                        <td>★ <%= r.rating %></td>
+                        <td style="max-width: 260px;"><%= r.review || '—' %></td>
+                        <td class="text-muted"><%= new Date(r.created_at).toLocaleDateString() %></td>
+                        <td><button class="btn btn-danger btn-sm js-delete-review" data-review-id="<%= r.id %>">Delete</button></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination', { currentPage, totalPages, baseUrl: '/admin/reviews', filters: {} }) %>
+    </div>
+</div>
+<script src="/js/main.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
