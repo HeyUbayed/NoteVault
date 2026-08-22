@@ -1,7 +1,7 @@
 {
   "name": "notevault",
   "version": "1.0.0",
-  "description": "NoteVault Phase 1 \u2014 Basic Note Sharing Platform",
+  "description": "NoteVault - Academic Notes Sharing Platform",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
