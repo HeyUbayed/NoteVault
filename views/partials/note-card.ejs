@@ -2,6 +2,11 @@
     <a href="/notes/<%= note.id %>" class="note-card-thumb">
         <img src="<%= note.thumbnail %>" alt="<%= note.title %>" loading="lazy">
         <span class="note-card-dept-badge"><%= note.department %></span>
+        <% if (locals.currentUser) { %>
+            <button class="note-card-bookmark" data-note-id="<%= note.id %>" title="Bookmark" aria-label="Bookmark">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2a2 2 0 00-2 2v18l8-5 8 5V4a2 2 0 00-2-2z"/></svg>
+            </button>
+        <% } %>
     </a>
     <div class="note-card-body">
         <a href="/notes/<%= note.id %>"><h3 class="note-card-title"><%= note.title %></h3></a>
@@ -10,11 +15,18 @@
             <span>·</span>
             <span><%= note.semester %></span>
         </div>
-        <div class="note-card-uploader">
+        <a href="/users/<%= note.uploaded_by %>" class="note-card-uploader" onclick="event.stopPropagation()">
             <% if (note.uploader_image) { %><img src="<%= note.uploader_image %>" alt=""><% } %>
             <span><%= note.uploader_name %></span>
-        </div>
+        </a>
         <div class="note-card-footer">
+            <div class="rating-inline">
+                <span class="stars">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>
+                </span>
+                <%= Number(note.average_rating).toFixed(1) %>
+                <span class="rating-count">(<%= note.rating_count %>)</span>
+            </div>
             <span class="text-muted" style="font-size:0.78rem; display:flex; align-items:center; gap:4px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <%= note.downloads %>
