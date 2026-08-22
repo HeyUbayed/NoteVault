@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Manage Notes · NoteVault Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<%- include('_sidebar', { activeAdmin: 'notes' }) %>
+    <nav class="breadcrumb" style="margin-top:0; margin-bottom: 10px;"><a href="/admin">Admin</a><span class="breadcrumb-sep">/</span><span class="breadcrumb-current">Manage Notes</span></nav>
+    <div class="admin-topbar">
+        <div><h1>Manage Notes</h1><p class="text-muted">Review and moderate uploaded notes.</p></div>
+    </div>
+
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Title</th><th>Uploader</th><th>Department</th><th>Rating</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                <% if (notes.length === 0) { %>
+                    <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">No notes found.</td></tr>
+                <% } %>
+                <% notes.forEach(function(n) { %>
+                    <tr>
+                        <td><a href="/admin/notes/<%= n.id %>/view" target="_blank" style="font-weight:600;"><%= n.title %></a></td>
+                        <td><%= n.uploader_name %></td>
+                        <td><span class="badge badge-primary"><%= n.department %></span></td>
+                        <td>★ <%= Number(n.average_rating).toFixed(1) %></td>
+                        <td><%= n.downloads %></td>
+                        <td><span class="badge <%= n.is_reported ? 'badge-danger' : 'badge-accent' %>"><%= n.is_reported ? 'Reported' : 'Clean' %></span></td>
+                        <td>
+                            <div class="row-actions">
+                                <a href="/admin/notes/<%= n.id %>/view" target="_blank" class="btn btn-outline btn-sm">View</a>
+                                <a href="/admin/notes/<%= n.id %>/download" class="btn btn-ghost btn-sm">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Download
+                                </a>
+                                <button class="btn btn-danger btn-sm js-delete-note" data-note-id="<%= n.id %>">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination', { currentPage, totalPages, baseUrl: '/admin/notes', filters: {} }) %>
+    </div>
+</div>
+<script src="/js/main.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
