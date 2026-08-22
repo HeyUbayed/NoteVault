@@ -3,8 +3,20 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
-const MAX_PDF_SIZE = (parseInt(process.env.MAX_PDF_SIZE_MB) || 15) * 1024 * 1024;
+const MAX_PDF_SIZE = (parseInt(process.env.MAX_PDF_SIZE_MB) || 100) * 1024 * 1024;
 const MAX_THUMB_SIZE = (parseInt(process.env.MAX_THUMB_SIZE_MB) || 3) * 1024 * 1024;
+
+function storageFor(subfolder) {
+    return multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, path.join(__dirname, '..', 'public', 'uploads', subfolder));
+        },
+        filename: (req, file, cb) => {
+            const unique = uuidv4();
+            cb(null, `${unique}${path.extname(file.originalname).toLowerCase()}`);
+        }
+    });
+}
 
 function fileFilterPdf(req, file, cb) {
     if (file.fieldname === 'pdf') {
@@ -12,7 +24,7 @@ function fileFilterPdf(req, file, cb) {
             return cb(new Error('Only PDF files are allowed for notes.'));
         }
     }
-    if (file.fieldname === 'thumbnail') {
+    if (file.fieldname === 'thumbnail' || file.fieldname === 'profile_image') {
         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
         if (!allowed.includes(file.mimetype)) {
             return cb(new Error('Only JPG, PNG, or WEBP images are allowed.'));
@@ -38,4 +50,10 @@ const uploadNote = multer({
     { name: 'thumbnail', maxCount: 1 }
 ]);
 
-module.exports = { uploadNote };
+const uploadProfileImage = multer({
+    storage: storageFor('profiles'),
+    fileFilter: fileFilterPdf,
+    limits: { fileSize: MAX_THUMB_SIZE }
+}).single('profile_image');
+
+module.exports = { uploadNote, uploadProfileImage };
