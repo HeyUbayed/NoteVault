@@ -5,16 +5,47 @@
 <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Browse Notes' }] }) %>
         <div class="page-header">
             <h1>Browse Notes</h1>
-            <p>All notes shared by the NoteVault community, newest first.</p>
+            <p>Filter by department, semester, or course to find exactly what you need.</p>
         </div>
 
-        <p class="text-muted mt-3"><%= totalCount %> notes found</p>
+        <form class="filter-bar mt-3" id="filterForm" method="GET" action="/browse">
+            <% if (filters.course) { %><input type="hidden" name="course" value="<%= filters.course %>"><% } %>
+            <span class="filter-label">Filter:</span>
+            <select name="department">
+                <option value="">All Departments</option>
+                <% departments.forEach(function(d) { %>
+                    <option value="<%= d.department %>" <%= filters.department === d.department ? 'selected' : '' %>><%= d.department %></option>
+                <% }) %>
+            </select>
+            <select name="semester">
+                <option value="">All Semesters</option>
+                <% for (let i = 1; i <= 12; i++) { const label = i + (i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th') + ' Semester'; %>
+                    <option value="<%= label %>" <%= filters.semester === label ? 'selected' : '' %>><%= label %></option>
+                <% } %>
+            </select>
+            <select name="sort">
+                <option value="latest" <%= filters.sort === 'latest' ? 'selected' : '' %>>Latest</option>
+                <option value="popular" <%= filters.sort === 'popular' ? 'selected' : '' %>>Most Downloaded</option>
+                <option value="rating" <%= filters.sort === 'rating' ? 'selected' : '' %>>Highest Rated</option>
+                <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+            </select>
+            <span class="filter-result-count"><%= totalCount %> notes found</span>
+        </form>
+
+        <% if (filters.course) { %>
+            <div class="mb-3">
+                <span class="badge badge-secondary">
+                    Course: <%= filters.course %>
+                    <a href="/browse" style="margin-left:6px; color:inherit;">✕</a>
+                </span>
+            </div>
+        <% } %>
 
         <% if (notes.length === 0) { %>
             <div class="empty-state">
                 <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                <h3>No notes uploaded yet</h3>
-                <p>Be the first to share your notes with the community.</p>
+                <h3>No notes match these filters</h3>
+                <p>Try adjusting your filters or check back later.</p>
             </div>
         <% } else { %>
             <div class="grid-cards">
@@ -22,8 +53,8 @@
                     <%- include('partials/note-card', { note: n }) %>
                 <% }) %>
             </div>
-            <%- include('partials/pagination', { currentPage, totalPages, baseUrl: '/browse' }) %>
+            <%- include('partials/pagination', { currentPage, totalPages, baseUrl: '/browse', filters }) %>
         <% } %>
     </div>
 </main>
-<%- include('partials/footer') %>
+<%- include('partials/footer', { extraJs: ['/js/browse.js'] }) %>
