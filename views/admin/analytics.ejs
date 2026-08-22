@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Analytics · NoteVault Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<%- include('_sidebar', { activeAdmin: 'analytics' }) %>
+    <nav class="breadcrumb" style="margin-top:0; margin-bottom: 10px;"><a href="/admin">Admin</a><span class="breadcrumb-sep">/</span><span class="breadcrumb-current">Analytics</span></nav>
+    <div class="admin-topbar">
+        <div><h1>Analytics</h1><p class="text-muted">Platform growth and content distribution.</p></div>
+    </div>
+
+    <% 
+    const maxDept = Math.max(...deptRows.map(d => d.count), 1);
+    const maxGrowth = Math.max(...growthRows.map(g => g.count), 1);
+    const maxUserGrowth = Math.max(...userGrowthRows.map(g => g.count), 1);
+    %>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="admin-grid-2">
+        <div class="data-table-wrap" style="padding: 24px;">
+            <h3 style="font-size:1rem; margin-bottom: 6px;">Notes by Department</h3>
+            <p class="text-muted mb-2" style="font-size:0.8rem;">Distribution of uploaded notes</p>
+            <div class="bar-chart">
+                <% deptRows.slice(0,6).forEach(function(d) { %>
+                    <div class="bar-chart-col">
+                        <span class="bar-chart-value"><%= d.count %></span>
+                        <div class="bar-chart-bar" style="height: <%= (d.count / maxDept) * 100 %>%;"></div>
+                        <span class="bar-chart-label"><%= d.department %></span>
+                    </div>
+                <% }) %>
+                <% if (deptRows.length === 0) { %><p class="text-muted">No data yet.</p><% } %>
+            </div>
+        </div>
+
+        <div class="data-table-wrap" style="padding: 24px;">
+            <h3 style="font-size:1rem; margin-bottom: 6px;">Notes Uploaded (Last 6 Months)</h3>
+            <p class="text-muted mb-2" style="font-size:0.8rem;">Monthly upload volume</p>
+            <div class="bar-chart">
+                <% growthRows.slice().reverse().forEach(function(g) { %>
+                    <div class="bar-chart-col">
+                        <span class="bar-chart-value"><%= g.count %></span>
+                        <div class="bar-chart-bar" style="height: <%= (g.count / maxGrowth) * 100 %>%; background: linear-gradient(180deg, var(--color-accent), #067A55);"></div>
+                        <span class="bar-chart-label"><%= g.month %></span>
+                    </div>
+                <% }) %>
+                <% if (growthRows.length === 0) { %><p class="text-muted">No data yet.</p><% } %>
+            </div>
+        </div>
+
+        <div class="data-table-wrap" style="padding: 24px; grid-column: span 2;" class="admin-full-width">
+            <h3 style="font-size:1rem; margin-bottom: 6px;">User Signups (Last 6 Months)</h3>
+            <p class="text-muted mb-2" style="font-size:0.8rem;">New account registrations</p>
+            <div class="bar-chart">
+                <% userGrowthRows.slice().reverse().forEach(function(g) { %>
+                    <div class="bar-chart-col">
+                        <span class="bar-chart-value"><%= g.count %></span>
+                        <div class="bar-chart-bar" style="height: <%= (g.count / maxUserGrowth) * 100 %>%; background: linear-gradient(180deg, var(--color-secondary), var(--color-primary));"></div>
+                        <span class="bar-chart-label"><%= g.month %></span>
+                    </div>
+                <% }) %>
+                <% if (userGrowthRows.length === 0) { %><p class="text-muted">No data yet.</p><% } %>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+<script src="/js/main.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
