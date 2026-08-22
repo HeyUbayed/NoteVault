@@ -1,0 +1,10 @@
+node_modules/
+.env
+public/uploads/pdfs/*
+public/uploads/thumbnails/*
+public/uploads/profiles/*
+!public/uploads/pdfs/.gitkeep
+!public/uploads/thumbnails/.gitkeep
+!public/uploads/profiles/.gitkeep
+*.log
+.DS_Store
