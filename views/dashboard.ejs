@@ -5,8 +5,21 @@
 <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Dashboard' }] }) %>
         <div class="page-header">
             <h1>Welcome back, <%= user.name.split(' ')[0] %> 👋</h1>
-            <p>Here's what's happening with your notes.</p>
+            <p>Here's what's happening with your notes and credits.</p>
         </div>
+
+        <div class="mt-3"></div>
+
+        <% if (user.credit < 3) { %>
+        <div class="credit-banner">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/></svg>
+            <div>
+                <strong>Your credit balance is running low (<%= user.credit %> left)</strong>
+                <span>Upload a note to earn +5 credits and keep downloading freely.</span>
+            </div>
+            <a href="/upload" class="btn btn-primary btn-sm" style="margin-left:auto;">Upload Now</a>
+        </div>
+        <% } %>
 
         <div class="dash-layout">
             <%- include('partials/dash-sidebar', { activePage: 'dashboard' }) %>
@@ -27,6 +40,27 @@
                         <strong><%= stats.total_downloads_received || 0 %></strong>
                         <span>Downloads Received</span>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l4.5-4.5M12 16l-4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <strong><%= stats.total_downloads || 0 %></strong>
+                        <span>Notes Downloaded</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon" style="background: #FEF3C7; color: #92620A;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>
+                        </div>
+                        <strong>★ <%= Number(user.average_rating).toFixed(1) %></strong>
+                        <span>Average Rating</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon" style="background: var(--color-warning-light); color: #92620A;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        </div>
+                        <strong><%= user.credit %></strong>
+                        <span>Credit Balance</span>
+                    </div>
                 </div>
 
                 <div class="section-head">
@@ -38,7 +72,7 @@
                     <div class="empty-state">
                         <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.4"/></svg>
                         <h3>No notes uploaded yet</h3>
-                        <p class="mb-2">Share your first note with the community.</p>
+                        <p class="mb-2">Share your first note and start earning credits.</p>
                         <a href="/upload" class="btn btn-primary">Upload a Note</a>
                     </div>
                 <% } else { %>
@@ -48,8 +82,19 @@
                         <% }) %>
                     </div>
                 <% } %>
+
+                <% if (recentlyViewed.length > 0) { %>
+                <div class="section-head">
+                    <div><h2 style="font-size:1.2rem;">Recently Viewed</h2></div>
+                </div>
+                <div class="grid-cards mb-4">
+                    <% recentlyViewed.forEach(function(n) { %>
+                        <%- include('partials/note-card', { note: n }) %>
+                    <% }) %>
+                </div>
+                <% } %>
             </div>
         </div>
     </div>
 </main>
-<%- include('partials/footer') %>
+<%- include('partials/footer', { extraJs: ['/js/browse.js'] }) %>
