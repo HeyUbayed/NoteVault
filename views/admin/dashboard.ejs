@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Admin Panel · NoteVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<%- include('_sidebar', { activeAdmin: 'dashboard' }) %>
+    <div class="admin-topbar">
+        <div><h1>Welcome back, Admin</h1><p class="text-muted">Here's what's happening on NoteVault today.</p></div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-primary-light); color: var(--color-primary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 20c1.2-3.6 4.2-5 6.5-5s5.3 1.4 6.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <strong><%= stats.total_users %></strong><span>Total Users</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <strong><%= stats.total_notes %></strong><span>Total Notes</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-accent-light); color: #067A55;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <strong><%= stats.total_downloads %></strong><span>Total Downloads</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-warning-light); color: #92620A;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <strong><%= creditStats.credits_issued %></strong><span>Credits Issued</span>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="admin-grid-2">
+        <div class="data-table-wrap" style="padding: 24px;">
+            <h3 style="font-size:1rem; margin-bottom:16px;">Pending Reports (<%= pendingReports.length %>)</h3>
+            <% if (pendingReports.length === 0) { %>
+                <p class="text-muted">No pending reports. Nice and clean!</p>
+            <% } %>
+            <div class="activity-list">
+                <% pendingReports.forEach(function(r) { %>
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: var(--color-danger-light); color: var(--color-danger);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="activity-details">
+                            <strong><%= r.note_title %></strong>
+                            <span>Reported by <%= r.reporter_name %>: "<%= r.reason %>"</span>
+                        </div>
+                        <a href="/admin/reports/<%= r.id %>/resolve" class="btn btn-outline btn-sm">Resolve</a>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <div class="data-table-wrap" style="padding: 24px;">
+            <h3 style="font-size:1rem; margin-bottom:16px;">Platform Summary</h3>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-details"><strong>Departments Represented</strong></div>
+                    <span class="activity-amount positive"><%= stats.total_departments %></span>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-details"><strong>Credits Spent (Downloads)</strong></div>
+                    <span class="activity-amount negative"><%= creditStats.credits_spent %></span>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-details"><strong>Avg. Notes per User</strong></div>
+                    <span class="activity-amount">
+                        <%= stats.total_users > 0 ? (stats.total_notes / stats.total_users).toFixed(1) : '0' %>
+                    </span>
+                </div>
+            </div>
+            <a href="/admin/analytics" class="btn btn-outline btn-block mt-3">View Full Analytics</a>
+        </div>
+    </div>
+    </div>
+</div>
+<script src="/js/main.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
