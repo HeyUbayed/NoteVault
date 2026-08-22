@@ -2,23 +2,27 @@
 <%- include('partials/navbar') %>
 <main>
     <section class="hero">
+        <div class="hero-mesh" aria-hidden="true"></div>
         <div class="container hero-inner">
             <div>
                 <span class="hero-eyebrow">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z" fill="currentColor"/></svg>
                     Trusted by students across every department
                 </span>
-                <h1>Share notes. <span class="accent-text">Help each other.</span><br>Ace every exam.</h1>
-                <p class="lede">NoteVault is where students upload the notes that got them an A, and download the ones they need to succeed.</p>
+                <h1>Share notes. <span class="accent-text">Earn credits.</span><br>Ace every exam.</h1>
+                <p class="lede">NoteVault is where students upload the notes that got them an A, and download the ones they need — powered by a fair, upload-to-earn credit system.</p>
                 <div class="hero-cta">
                     <a href="/browse" class="btn btn-primary btn-lg">Browse Notes</a>
-                    <% if (!locals.currentUser) { %>
+                    <% if (locals.isAdmin) { %>
+                        <a href="/admin" class="btn btn-outline btn-lg">Admin Panel</a>
+                    <% } else if (!locals.currentUser) { %>
                         <a href="/register" class="btn btn-outline btn-lg">Join for Free</a>
                     <% } else { %>
                         <a href="/upload" class="btn btn-outline btn-lg">Upload a Note</a>
                     <% } %>
                 </div>
-                <div class="hero-stats">
+
+                <div class="hero-stat-bar">
                     <div class="hero-stat"><strong><%= stats.total_notes %></strong><span>Notes Shared</span></div>
                     <div class="hero-stat"><strong><%= stats.total_users %></strong><span>Students</span></div>
                     <div class="hero-stat"><strong><%= stats.total_downloads %></strong><span>Downloads</span></div>
@@ -30,19 +34,19 @@
                     <span class="stack-tag">CSE</span>
                     <h4>Data Structures Midterm</h4>
                     <div class="stack-bar"><span></span></div>
-                    <div class="stack-meta"><span>312 downloads</span></div>
+                    <div class="stack-meta"><span>★ 4.8</span><span>312 downloads</span></div>
                 </div>
                 <div class="stack-card stack-card-2">
                     <span class="stack-tag">EEE</span>
                     <h4>Digital Logic Design</h4>
                     <div class="stack-bar"><span></span></div>
-                    <div class="stack-meta"><span>204 downloads</span></div>
+                    <div class="stack-meta"><span>★ 4.9</span><span>204 downloads</span></div>
                 </div>
                 <div class="stack-card stack-card-3">
                     <span class="stack-tag">BBA</span>
                     <h4>Principles of Marketing</h4>
                     <div class="stack-bar"><span></span></div>
-                    <div class="stack-meta"><span>158 downloads</span></div>
+                    <div class="stack-meta"><span>★ 4.6</span><span>158 downloads</span></div>
                 </div>
             </div>
         </div>
@@ -56,7 +60,7 @@
             </div>
             <div class="dept-pill-grid">
                 <% departments.forEach(function(d) { %>
-                    <a href="/browse" class="dept-pill">
+                    <a href="/browse?department=<%= encodeURIComponent(d.department) %>" class="dept-pill">
                         <span class="dept-pill-icon"><%= d.department.substring(0,2).toUpperCase() %></span>
                         <div><strong><%= d.department %></strong><span><%= d.notes_count %> notes</span></div>
                     </a>
@@ -72,7 +76,7 @@
         <div class="container">
             <div class="section-head">
                 <div><h2>Freshly Uploaded</h2><p>The latest notes added by the community</p></div>
-                <a href="/browse" class="section-link">View all →</a>
+                <a href="/browse?sort=latest" class="section-link">View all →</a>
             </div>
             <div class="grid-cards">
                 <% latest.forEach(function(n) { %>
@@ -86,9 +90,91 @@
     </section>
 
     <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <div><h2>Top Rated Notes</h2><p>Highly praised by fellow students</p></div>
+                <a href="/browse?sort=rating" class="section-link">View all →</a>
+            </div>
+            <div class="grid-cards">
+                <% topRated.forEach(function(n) { %>
+                    <%- include('partials/note-card', { note: n }) %>
+                <% }) %>
+                <% if (topRated.length === 0) { %>
+                    <p class="text-muted">No ratings yet — download and rate a note!</p>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <% if (topContributors.length > 0) { %>
+    <section class="section" style="background: var(--color-bg-alt);">
+        <div class="container">
+            <div class="section-head">
+                <div><h2>Top Contributors</h2><p>Students helping the whole campus succeed</p></div>
+            </div>
+            <div class="contributors-strip">
+                <% topContributors.forEach(function(c, i) { %>
+                    <a href="/users/<%= c.id %>" class="contributor-card">
+                        <div class="contributor-rank">#<%= i + 1 %></div>
+                        <img src="<%= c.profile_image %>" alt="<%= c.name %>">
+                        <strong><%= c.name %></strong>
+                        <span><%= c.notes_count %> notes · ★ <%= Number(c.average_rating).toFixed(1) %></span>
+                    </a>
+                <% }) %>
+            </div>
+        </div>
+    </section>
+    <% } %>
+
+    <% if (trending.length > 0) { %>
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <div>
+                    <h2 style="display:flex; align-items:center; gap:8px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--color-secondary)"/></svg>
+                        Trending This Month
+                    </h2>
+                    <p>Notes gaining traction across campus right now</p>
+                </div>
+            </div>
+            <div class="grid-cards">
+                <% trending.forEach(function(n) { %>
+                    <%- include('partials/note-card', { note: n }) %>
+                <% }) %>
+            </div>
+        </div>
+    </section>
+    <% } %>
+
+    <% if (popularCourses.length > 0) { %>
+    <section class="section" style="background: var(--color-bg-alt);">
+        <div class="container">
+            <div class="section-head">
+                <div><h2>Popular Courses</h2><p>Where students are focusing their study time</p></div>
+            </div>
+            <div class="dept-pill-grid">
+                <% popularCourses.forEach(function(c) { %>
+                    <a href="/browse?course=<%= encodeURIComponent(c.course) %>" class="dept-pill">
+                        <span class="dept-pill-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/></svg>
+                        </span>
+                        <div>
+                            <strong><%= c.course %></strong>
+                            <span><%= c.notes_count %> notes · ★ <%= Number(c.avg_rating || 0).toFixed(1) %></span>
+                        </div>
+                    </a>
+                <% }) %>
+            </div>
+        </div>
+    </section>
+    <% } %>
+
+    <% if (!locals.isAdmin) { %>
+    <section class="section">
         <div class="container text-center">
-            <h2 class="mb-2">Ready to share what you know?</h2>
-            <p class="text-muted mb-3">Upload your notes and help fellow students across campus.</p>
+            <h2 class="mb-2">Ready to trade notes for knowledge?</h2>
+            <p class="text-muted mb-3">Upload one note, earn 5 credits, and unlock the entire library.</p>
             <% if (!locals.currentUser) { %>
                 <a href="/register" class="btn btn-primary btn-lg">Create Your Free Account</a>
             <% } else { %>
@@ -96,5 +182,6 @@
             <% } %>
         </div>
     </section>
+    <% } %>
 </main>
 <%- include('partials/footer') %>
