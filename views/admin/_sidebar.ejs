@@ -1,0 +1,35 @@
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <a href="/admin" class="brand" style="padding: 0 4px 24px;">
+            <span class="brand-mark">
+                <svg width="24" height="24" viewBox="0 0 26 26" fill="none"><rect x="5" y="4" width="16" height="20" rx="2.5" fill="var(--color-primary)"/><line x1="8.5" y1="9" x2="17.5" y2="9" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="8.5" y1="13" x2="17.5" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span class="brand-name">NoteVault<span style="color:var(--color-secondary);">Admin</span></span>
+        </a>
+        <nav class="dash-nav">
+            <a href="/admin" class="<%= activeAdmin === 'dashboard' ? 'active' : '' %>">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+                Overview
+            </a>
+            <a href="/admin/users" class="<%= activeAdmin === 'users' ? 'active' : '' %>">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 20c1.2-3.6 4.2-5 6.5-5s5.3 1.4 6.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17.5" cy="8.5" r="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 14c2 .2 4 1.4 5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Manage Users
+            </a>
+            <a href="/admin/notes" class="<%= activeAdmin === 'notes' ? 'active' : '' %>">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/></svg>
+                Manage Notes
+            </a>
+            <a href="/admin/reviews" class="<%= activeAdmin === 'reviews' ? 'active' : '' %>">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                Manage Reviews
+            </a>
+            <a href="/admin/analytics" class="<%= activeAdmin === 'analytics' ? 'active' : '' %>">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Analytics
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="/" target="_blank">View Site ↗</a>
+            <a href="/admin/logout" class="text-danger">Log Out</a>
+        </nav>
+    </aside>
+    <div class="admin-content">
