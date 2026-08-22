@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+    <title>Admin Login · NoteVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <div class="auth-page" style="min-height: 100vh;">
+        <div class="auth-card">
+            <div class="modal-icon" style="background: var(--color-secondary-light); color: var(--color-secondary);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.6"/></svg>
+            </div>
+            <h1>Admin Access</h1>
+            <p class="subtitle">Restricted area for NoteVault administrators.</p>
+
+            <% if (error) { %><div class="form-error-box"><%= error %></div><% } %>
+
+            <form method="POST" action="/admin/login">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                <div class="form-group">
+                    <label class="form-label">Admin Email</label>
+                    <input type="email" name="email" class="form-control" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-block btn-lg">Log In to Admin Panel</button>
+            </form>
+            <div class="auth-switch"><a href="/">← Back to NoteVault</a></div>
+        </div>
+    </div>
+</body>
+</html>
