@@ -5,7 +5,7 @@
 <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Dashboard', url: '/dashboard' }, { label: 'Upload a Note' }] }) %>
         <div class="page-header">
             <h1>Upload a Note</h1>
-            <p>Share your notes with fellow students.</p>
+            <p>Share your notes and earn <strong style="color:var(--color-accent);">+5 credits</strong> instantly.</p>
         </div>
 
         <% if (errors && errors.length > 0) { %>
@@ -24,7 +24,7 @@
                         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="margin:0 auto;"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.5"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/></svg>
                     </div>
                     <p><strong>Click to upload</strong> or drag and drop</p>
-                    <span class="form-hint">PDF only, up to 15MB</span>
+                    <span class="form-hint">PDF only, up to 100MB</span>
                     <div class="file-drop-filename" id="pdfDropLabel"></div>
                 </div>
             </div>
@@ -89,7 +89,7 @@
 
             <button type="submit" class="btn btn-primary btn-lg btn-block">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 4v13m0 0l-4.5-4.5M12 17l4.5-4.5M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Upload Note
+                Upload Note &amp; Earn 5 Credits
             </button>
         </form>
     </div>
