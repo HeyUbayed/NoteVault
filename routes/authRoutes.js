@@ -28,4 +28,7 @@ router.post('/login', isGuest, verifyToken, loginValidation, authController.logi
 
 router.get('/logout', authController.logout);
 
+router.get('/forgot-password', isGuest, authController.showForgotPassword);
+router.post('/forgot-password', isGuest, verifyToken, authController.submitForgotPassword);
+
 module.exports = router;
