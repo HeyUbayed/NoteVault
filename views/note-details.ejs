@@ -4,7 +4,7 @@
     <div class="container" style="max-width: 1000px;">
         <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Browse Notes', url: '/browse' }, { label: note.title }] }) %>
         <% if (justUploaded) { %>
-            <div class="form-success-box mt-3">🎉 Your note is live!</div>
+            <div class="form-success-box mt-3">🎉 Your note is live! You've earned <strong>+5 credits</strong>.</div>
         <% } %>
 
         <div style="display:grid; grid-template-columns: 300px 1fr; gap: 34px; margin-top: 24px;" class="note-details-grid">
@@ -18,11 +18,33 @@
                 <% } %>
 
                 <div class="mt-3">
-                    <% if (locals.currentUser) { %>
-                        <a href="/notes/<%= note.id %>/download" class="btn btn-primary btn-block btn-lg">
+                    <% if (locals.isAdmin) { %>
+                        <button id="downloadBtn" class="btn btn-primary btn-block btn-lg" data-note-id="<%= note.id %>" data-downloaded="true" data-admin="true">
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             Download Note
-                        </a>
+                        </button>
+                        <button id="adminDeleteBtn" class="btn btn-ghost btn-block mt-2" data-note-id="<%= note.id %>" style="color: var(--color-danger);">
+                            Delete Note
+                        </button>
+                        <span class="form-hint mt-2" style="display:block; text-align:center;">Admins can download or delete but cannot rate, bookmark, or report notes.</span>
+                    <% } else if (locals.currentUser) { %>
+                        <button id="downloadBtn" class="btn btn-primary btn-block btn-lg" data-note-id="<%= note.id %>" data-downloaded="<%= hasDownloaded %>">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <%= hasDownloaded ? 'Download Again' : (locals.currentUser.id === note.uploaded_by ? 'Download Note (free — your upload)' : 'Download Note (1 credit)') %>
+                        </button>
+                        <button id="bookmarkBtn" class="btn btn-outline btn-block mt-2 <%= isBookmarked ? 'active' : '' %>" data-note-id="<%= note.id %>">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2a2 2 0 00-2 2v18l8-5 8 5V4a2 2 0 00-2-2z"/></svg>
+                            <%= isBookmarked ? 'Bookmarked' : 'Bookmark' %>
+                        </button>
+                        <% if (locals.currentUser.id === note.uploaded_by) { %>
+                            <button id="ownerDeleteBtn" class="btn btn-ghost btn-block mt-2" data-note-id="<%= note.id %>" style="color: var(--color-danger);">
+                                Delete Note
+                            </button>
+                        <% } else { %>
+                            <button class="btn btn-ghost btn-block mt-2" onclick="openModal('reportModal')" style="color: var(--color-danger);">
+                                Report this note
+                            </button>
+                        <% } %>
                     <% } else { %>
                         <a href="/login" class="btn btn-primary btn-block btn-lg">Log In to Download</a>
                     <% } %>
@@ -41,16 +63,23 @@
                 <h1 style="font-size: 1.8rem; margin-bottom: 10px;"><%= note.title %></h1>
 
                 <div style="display:flex; align-items:center; gap: 16px; flex-wrap:wrap; margin-bottom: 18px;">
+                    <div class="rating-inline">
+                        <span class="stars">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>
+                        </span>
+                        <%= Number(note.average_rating).toFixed(1) %> <span class="rating-count">(<%= note.rating_count %> ratings)</span>
+                    </div>
+                    <span class="text-muted" style="font-size:0.85rem;">·</span>
                     <span class="text-muted" style="font-size:0.85rem; display:flex; align-items:center; gap:5px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         <%= note.downloads %> downloads
                     </span>
                 </div>
 
-                <div class="note-card-uploader mb-3" style="display:inline-flex;">
+                <a href="/users/<%= note.uploaded_by %>" class="note-card-uploader mb-3" style="display:inline-flex;">
                     <img src="<%= note.uploader_image %>" alt="">
                     <span>Uploaded by <strong><%= note.uploader_name %></strong> · <%= new Date(note.upload_date).toLocaleDateString() %></span>
-                </div>
+                </a>
 
                 <div class="data-table-wrap mb-3" style="padding: 20px;">
                     <h3 style="font-size:1rem; margin-bottom:10px;">About this note</h3>
@@ -62,13 +91,95 @@
                         <div><span class="text-muted">Semester:</span> <strong><%= note.semester %></strong></div>
                     </div>
                 </div>
+
+                <% if (!locals.isAdmin && locals.currentUser && hasDownloaded && locals.currentUser.id !== note.uploaded_by) { %>
+                <div class="data-table-wrap mb-3" style="padding: 20px;">
+                    <h3 style="font-size:1rem; margin-bottom:14px;">Rate this note</h3>
+                    <form id="ratingForm" data-note-id="<%= note.id %>" data-no-loading-bar="true">
+                        <div class="star-input" id="starInput" data-current="<%= userRating ? userRating.rating : 0 %>">
+                            <% for (let i = 1; i <= 5; i++) { %>
+                                <span class="star" data-value="<%= i %>">★</span>
+                            <% } %>
+                        </div>
+                        <textarea name="review" class="form-control mt-2" placeholder="Share your thoughts on this note (optional)"><%= userRating ? userRating.review : '' %></textarea>
+                        <button type="submit" class="btn btn-primary mt-2"><%= userRating ? 'Update Rating' : 'Submit Rating' %></button>
+                    </form>
+                </div>
+                <% } %>
+
+                <div class="data-table-wrap mb-3" style="padding: 20px;">
+                    <h3 style="font-size:1rem; margin-bottom:14px;">Reviews (<%= ratings.length %>)</h3>
+                    <% if (ratings.length === 0) { %>
+                        <p class="text-muted">No reviews yet. Be the first to rate this note.</p>
+                    <% } %>
+                    <div class="activity-list">
+                        <% ratings.forEach(function(r) { %>
+                            <div class="activity-item">
+                                <img src="<%= r.user_image %>" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                                <div class="activity-details">
+                                    <strong><%= r.user_name %></strong>
+                                    <span class="stars" style="margin: 3px 0; display:inline-flex;">
+                                        <% for (let i = 1; i <= 5; i++) { %>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="<%= i <= r.rating ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="1"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>
+                                        <% } %>
+                                    </span>
+                                    <% if (r.review) { %><span style="display:block; color: var(--color-text); margin-top: 4px;"><%= r.review %></span><% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <% if (related.length > 0) { %>
+        <div class="section-head mt-4">
+            <div><h2 style="font-size:1.3rem;">More from <%= note.course %></h2></div>
+        </div>
+        <div class="grid-cards mb-4">
+            <% related.forEach(function(n) { %>
+                <%- include('partials/note-card', { note: n }) %>
+            <% }) %>
+        </div>
+        <% } %>
     </div>
 </main>
+
+<!-- Insufficient credit modal -->
+<div class="modal-overlay" id="insufficientCreditModal">
+    <div class="modal-box">
+        <div class="modal-icon" style="background: var(--color-warning-light); color: #92620A;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Not enough credits</h3>
+        <p>You need at least 1 credit to download this note. Upload a note of your own to earn +5 credits instantly.</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('insufficientCreditModal')">Cancel</button>
+            <a href="/upload" class="btn btn-primary">Upload a Note</a>
+        </div>
+    </div>
+</div>
+
+<!-- Report modal -->
+<div class="modal-overlay" id="reportModal">
+    <div class="modal-box">
+        <div class="modal-icon" style="background: var(--color-danger-light); color: var(--color-danger);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.3 3.9L2.6 17a2 2 0 001.7 3h15.4a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Report this note</h3>
+        <p>Let us know what's wrong. Our team will review it shortly.</p>
+        <form id="reportForm" data-note-id="<%= note.id %>" data-no-loading-bar="true">
+            <textarea name="reason" class="form-control mb-2" placeholder="Describe the issue (e.g. wrong file, plagiarism, offensive content)..." required></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('reportModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger">Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <style>
 @media (max-width: 760px) { .note-details-grid { grid-template-columns: 1fr !important; } }
 </style>
 
-<%- include('partials/footer') %>
+<%- include('partials/footer', { extraJs: ['/js/note-details.js'] }) %>
