@@ -13,9 +13,36 @@
             <span class="brand-name">NoteVault</span>
         </a>
 
+        <form class="nav-search" action="/search" method="GET" autocomplete="off">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input type="text" name="q" id="navSearchInput" placeholder="Search notes, courses, or teachers..." value="<%= typeof query !== 'undefined' ? query : '' %>">
+            <div class="search-suggestions" id="searchSuggestions"></div>
+        </form>
+
         <nav class="nav-links">
             <a href="/browse" class="nav-link <%= typeof title !== 'undefined' && title === 'Browse Notes' ? 'active' : '' %>">Browse</a>
-            <% if (locals.currentUser) { %>
+            <% if (locals.isAdmin) { %>
+                <div class="profile-menu">
+                    <button class="profile-trigger admin-trigger" id="profileTrigger" title="Admin">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.8"/></svg>
+                        <span>Admin</span>
+                    </button>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="profile-dropdown-header">
+                            <span class="admin-dropdown-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.8"/></svg>
+                            </span>
+                            <div>
+                                <strong>Administrator</strong>
+                                <span>Browsing the public site</span>
+                            </div>
+                        </div>
+                        <a href="/admin">Admin Panel</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/admin/logout" class="text-danger">Log Out</a>
+                    </div>
+                </div>
+            <% } else if (locals.currentUser) { %>
                 <a href="/upload" class="btn btn-primary btn-sm nav-upload-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
                     Upload
@@ -33,6 +60,7 @@
                             </div>
                         </div>
                         <a href="/dashboard">Dashboard</a>
+                        <a href="/profile">Profile</a>
                         <div class="dropdown-divider"></div>
                         <a href="/logout" class="text-danger">Log Out</a>
                     </div>
@@ -49,9 +77,14 @@
 
     <div class="mobile-menu" id="mobileMenu">
         <a href="/browse">Browse Notes</a>
-        <% if (locals.currentUser) { %>
+        <a href="/search">Search</a>
+        <% if (locals.isAdmin) { %>
+            <a href="/admin">Admin Panel</a>
+            <a href="/admin/logout" class="text-danger">Log Out</a>
+        <% } else if (locals.currentUser) { %>
             <a href="/upload">Upload a Note</a>
             <a href="/dashboard">Dashboard</a>
+            <a href="/profile">Profile</a>
             <a href="/logout" class="text-danger">Log Out</a>
         <% } else { %>
             <a href="/login">Log In</a>
@@ -59,7 +92,7 @@
         <% } %>
     </div>
 </header>
-<% if (locals.currentUser) { %>
+<% if (locals.currentUser && !locals.isAdmin) { %>
 <a href="/upload" class="fab" title="Upload a note" aria-label="Upload a note">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="white" stroke-width="2.4" stroke-linecap="round"/></svg>
 </a>
