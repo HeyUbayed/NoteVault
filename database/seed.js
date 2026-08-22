@@ -3,7 +3,19 @@ const bcrypt = require('bcrypt');
 const db = require('../config/db');
 
 async function seed() {
-    console.log('Seeding NoteVault (Phase 1) database...');
+    console.log('Seeding NoteVault database...');
+
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@notevault.com').toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@12345';
+
+    const [existingAdmin] = await db.query(`SELECT id FROM admins WHERE email = ?`, [adminEmail]);
+    if (existingAdmin.length === 0) {
+        const hashed = await bcrypt.hash(adminPassword, 12);
+        await db.query(`INSERT INTO admins (email, password) VALUES (?, ?)`, [adminEmail, hashed]);
+        console.log(`Admin account created: ${adminEmail} / ${adminPassword}`);
+    } else {
+        console.log('Admin account already exists, skipping.');
+    }
 
     const [existingUsers] = await db.query(`SELECT COUNT(*) AS count FROM users`);
     if (existingUsers[0].count === 0) {
@@ -18,8 +30,8 @@ async function seed() {
         const userIds = [];
         for (const [name, email, department] of sampleUsers) {
             const [result] = await db.query(
-                `INSERT INTO users (name, email, password, department) VALUES (?, ?, ?, ?)`,
-                [name, email, samplePassword, department]
+                `INSERT INTO users (name, email, password, department, credit) VALUES (?, ?, ?, ?, ?)`,
+                [name, email, samplePassword, department, 10]
             );
             userIds.push(result.insertId);
         }
@@ -65,12 +77,12 @@ async function seed() {
 
         for (const n of sampleNotes) {
             await db.query(
-                `INSERT INTO notes (title, description, pdf_path, thumbnail, department, semester, course, teacher, tags, uploaded_by, downloads)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO notes (title, description, pdf_path, thumbnail, department, semester, course, teacher, tags, uploaded_by, downloads, average_rating, rating_count)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     n.title, n.description, '/uploads/pdfs/sample-placeholder.pdf', '/images/default-thumbnail.png',
                     n.department, n.semester, n.course, n.teacher, n.tags, n.uploadedBy,
-                    Math.floor(Math.random() * 50)
+                    Math.floor(Math.random() * 50), (Math.random() * 2 + 3).toFixed(2), Math.floor(Math.random() * 20) + 1
                 ]
             );
         }
