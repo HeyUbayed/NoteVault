@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <title><%= typeof title !== 'undefined' ? title + ' · NoteVault' : 'NoteVault' %></title>
-    <meta name="description" content="NoteVault — discover and share academic notes from students across every department.">
+    <meta name="description" content="NoteVault — discover, share, and rate academic notes from students across every department.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +13,24 @@
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/components.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#2563EB', dark: '#1D4ED8', light: '#DBEAFE' },
+                        secondary: { DEFAULT: '#7C3AED', light: '#EDE4FC' },
+                        accent: { DEFAULT: '#10B981', light: '#D1FAE5' }
+                    },
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
     <% if (typeof extraCss !== 'undefined') { extraCss.forEach(function(href) { %>
         <link rel="stylesheet" href="<%= href %>">
     <% }) } %>
