@@ -1,0 +1,65 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <div class="container">
+        <%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Browse Notes', url: '/browse' }, { label: profileUser.name }] }) %>
+
+        <div class="data-table-wrap mt-3" style="padding: 28px; display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+            <img src="<%= profileUser.profile_image %>" alt="<%= profileUser.name %>" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--color-primary-light);">
+            <div style="flex:1; min-width:200px;">
+                <h1 style="font-size:1.5rem; margin-bottom:4px;"><%= profileUser.name %></h1>
+                <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; color:var(--color-text-muted); font-size:0.88rem;">
+                    <% if (profileUser.department) { %><span class="badge badge-primary"><%= profileUser.department %></span><% } %>
+                    <span class="rating-inline">
+                        <span class="stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg></span>
+                        <%= Number(profileUser.average_rating).toFixed(1) %> average rating
+                    </span>
+                    <span>Joined <%= new Date(profileUser.joined_date).toLocaleDateString() %></span>
+                </div>
+                <% if (profileUser.bio) { %><p class="text-muted mt-2"><%= profileUser.bio %></p><% } %>
+            </div>
+        </div>
+
+        <div class="stat-grid mt-3">
+            <div class="stat-card">
+                <strong><%= notes.length %></strong>
+                <span>Notes Uploaded</span>
+            </div>
+            <div class="stat-card">
+                <strong>★ <%= Number(profileUser.average_rating).toFixed(1) %></strong>
+                <span>Average Rating</span>
+            </div>
+            <div class="stat-card">
+                <strong><%= stats.total_downloads_received || 0 %></strong>
+                <span>Downloads Received</span>
+            </div>
+        </div>
+
+        <div class="mb-2 mt-3" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <% if (notes.length >= 1) { %><span class="badge badge-primary">🌱 First Upload</span><% } %>
+            <% if (notes.length >= 5) { %><span class="badge badge-secondary">📚 Prolific Uploader</span><% } %>
+            <% if (notes.length >= 15) { %><span class="badge badge-secondary">🏆 Power Contributor</span><% } %>
+            <% if (Number(profileUser.average_rating) >= 4.5 && notes.length > 0) { %><span class="badge badge-accent">⭐ Top Rated</span><% } %>
+            <% if ((stats.total_downloads_received || 0) >= 50) { %><span class="badge badge-warning">🔥 Popular Uploader</span><% } %>
+        </div>
+
+        <div class="section-head mt-4">
+            <div><h2 style="font-size:1.2rem;">Notes by <%= profileUser.name %></h2></div>
+        </div>
+
+        <% if (notes.length === 0) { %>
+            <div class="empty-state">
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.4"/></svg>
+                <h3>No notes uploaded yet</h3>
+                <p><%= profileUser.name %> hasn't shared any notes so far.</p>
+            </div>
+        <% } else { %>
+            <div class="grid-cards mb-4">
+                <% notes.forEach(function(n) { %>
+                    <%- include('partials/note-card', { note: Object.assign({}, n, { uploader_name: profileUser.name, uploader_image: profileUser.profile_image }) }) %>
+                <% }) %>
+            </div>
+        <% } %>
+    </div>
+</main>
+<%- include('partials/footer', { extraJs: ['/js/browse.js'] }) %>
