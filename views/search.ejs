@@ -1,0 +1,50 @@
+<%- include('partials/head') %>
+<%- include('partials/navbar') %>
+<main>
+    <div class="container">
+<%- include('partials/breadcrumb', { crumbs: [{ label: 'Home', url: '/' }, { label: 'Search' }] }) %>
+        <div class="page-header">
+            <h1><%= query ? `Results for "${query}"` : 'Search Notes' %></h1>
+            <p>Search across titles, courses, teachers, and tags.</p>
+        </div>
+
+        <form class="filter-bar mt-3" id="filterForm" method="GET" action="/search">
+            <input type="text" name="q" class="form-control" placeholder="Search notes..." value="<%= query %>" style="min-width: 220px; flex: 1;">
+            <select name="department">
+                <option value="">All Departments</option>
+                <% departments.forEach(function(d) { %>
+                    <option value="<%= d.department %>" <%= filters.department === d.department ? 'selected' : '' %>><%= d.department %></option>
+                <% }) %>
+            </select>
+            <select name="sort">
+                <option value="relevance" <%= filters.sort === 'relevance' ? 'selected' : '' %>>Most Relevant</option>
+                <option value="popular" <%= filters.sort === 'popular' ? 'selected' : '' %>>Most Downloaded</option>
+                <option value="rating" <%= filters.sort === 'rating' ? 'selected' : '' %>>Highest Rated</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Search</button>
+            <span class="filter-result-count"><%= totalCount %> results</span>
+        </form>
+
+        <% if (!query && !filters.department) { %>
+            <div class="empty-state">
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <h3>Start typing to search</h3>
+                <p>Search by note title, course name, teacher, or tag.</p>
+            </div>
+        <% } else if (notes.length === 0) { %>
+            <div class="empty-state">
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <h3>No results found</h3>
+                <p>Try a different keyword or clear your filters.</p>
+            </div>
+        <% } else { %>
+            <div class="grid-cards">
+                <% notes.forEach(function(n) { %>
+                    <%- include('partials/note-card', { note: n }) %>
+                <% }) %>
+            </div>
+            <%- include('partials/pagination', { currentPage, totalPages, baseUrl: '/search', filters, query }) %>
+        <% } %>
+    </div>
+</main>
+<%- include('partials/footer', { extraJs: ['/js/browse.js'] }) %>
