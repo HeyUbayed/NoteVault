@@ -68,6 +68,59 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileToggle.classList.toggle('active');
         });
     }
+
+    // ==================== NAV SEARCH SUGGESTIONS ====================
+    const navSearchInput = document.getElementById('navSearchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+    let searchTimeout;
+
+    if (navSearchInput) {
+        navSearchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const q = navSearchInput.value.trim();
+            if (q.length < 2) {
+                searchSuggestions.classList.remove('active');
+                return;
+            }
+            searchSuggestions.innerHTML = `
+                <div class="suggestion-item"><div class="skeleton" style="width:36px;height:36px;border-radius:6px;"></div><div style="flex:1;"><div class="skeleton" style="height:12px;width:70%;margin-bottom:6px;"></div><div class="skeleton" style="height:10px;width:45%;"></div></div></div>
+                <div class="suggestion-item"><div class="skeleton" style="width:36px;height:36px;border-radius:6px;"></div><div style="flex:1;"><div class="skeleton" style="height:12px;width:60%;margin-bottom:6px;"></div><div class="skeleton" style="height:10px;width:40%;"></div></div></div>
+            `;
+            searchSuggestions.classList.add('active');
+            searchTimeout = setTimeout(() => fetchSuggestions(q), 280);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!navSearchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+                searchSuggestions.classList.remove('active');
+            }
+        });
+    }
+
+    async function fetchSuggestions(q) {
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            if (!data.success) return;
+
+            if (data.results.length === 0) {
+                searchSuggestions.innerHTML = `<div class="suggestion-empty">No notes found for "${escapeHtml(q)}"</div>`;
+            } else {
+                searchSuggestions.innerHTML = data.results.map(r => `
+                    <a href="/notes/${r.id}" class="suggestion-item">
+                        <img src="${r.thumbnail}" alt="">
+                        <div>
+                            <div class="s-title">${escapeHtml(r.title)}</div>
+                            <div class="s-meta">${escapeHtml(r.course)} · ${escapeHtml(r.department)}</div>
+                        </div>
+                    </a>
+                `).join('');
+            }
+            searchSuggestions.classList.add('active');
+        } catch (err) {
+            console.error('Search suggestion error', err);
+        }
+    }
 });
 
 function escapeHtml(str) {
