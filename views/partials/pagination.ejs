@@ -1,12 +1,19 @@
-<%
+<% 
 function buildQuery(page) {
-    return baseUrl + '?page=' + page;
+    const params = new URLSearchParams();
+    if (typeof query !== 'undefined' && query) params.set('q', query);
+    if (filters.department) params.set('department', filters.department);
+    if (filters.semester) params.set('semester', filters.semester);
+    if (filters.course) params.set('course', filters.course);
+    if (filters.sort) params.set('sort', filters.sort);
+    params.set('page', page);
+    return baseUrl + '?' + params.toString();
 }
 %>
 <% if (totalPages > 1) { %>
 <div class="pagination">
     <a href="<%= buildQuery(Math.max(currentPage - 1, 1)) %>" class="page-link <%= currentPage === 1 ? 'disabled' : '' %>">‹</a>
-    <%
+    <% 
     let start = Math.max(currentPage - 2, 1);
     let end = Math.min(start + 4, totalPages);
     start = Math.max(end - 4, 1);
