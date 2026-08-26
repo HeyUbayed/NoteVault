@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const helmet = require('helmet');
 
+const db = require('./config/db');
 const sessionMiddleware = require('./config/session');
 const { attachUser } = require('./middleware/auth');
 const { ensureToken } = require('./middleware/csrf');
@@ -41,9 +42,36 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ------------------------------------------------------------
+// Session & authentication middleware
+// ------------------------------------------------------------
 app.use(sessionMiddleware);
 app.use(attachUser);
 app.use(ensureToken);
+
+// ------------------------------------------------------------
+// Health Check
+// ------------------------------------------------------------
+// Tests both the Express server and Railway MySQL connection.
+app.get('/api/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+
+        res.status(200).json({
+            success: true,
+            server: 'NoteVault API is running',
+            database: 'Connected to Railway MySQL'
+        });
+    } catch (error) {
+        console.error('Database health check failed:', error);
+
+        res.status(500).json({
+            success: false,
+            server: 'NoteVault API is running',
+            database: 'Railway MySQL connection failed'
+        });
+    }
+});
 
 // ------------------------------------------------------------
 // Routes
@@ -58,11 +86,13 @@ app.use('/', mainRoutes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
+// ------------------------------------------------------------
+// Start server
+// ------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
-if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`NoteVault running on http://localhost:${PORT}`);
-    });
-}
+
+app.listen(PORT, () => {
+    console.log(`NoteVault running on http://localhost:${PORT}`);
+});
 
 module.exports = app;
