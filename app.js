@@ -59,8 +59,10 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`NoteVault running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`NoteVault running on http://localhost:${PORT}`);
+    });
+}
 
 module.exports = app;
