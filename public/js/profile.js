@@ -1,4 +1,6 @@
+```js
 document.addEventListener('DOMContentLoaded', () => {
+
     // ------------------------------------------------------------
     // Tabs
     // ------------------------------------------------------------
@@ -16,7 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btn.classList.add('active');
 
-            const panel = document.getElementById(btn.dataset.tab);
+            const panel = document.getElementById(
+                btn.dataset.tab
+            );
 
             if (panel) {
                 panel.classList.add('active');
@@ -24,204 +28,416 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+
     // ------------------------------------------------------------
     // Avatar upload
     // ------------------------------------------------------------
-    const avatarInput = document.getElementById('avatarInput');
+    const avatarInput =
+        document.getElementById('avatarInput');
 
     if (avatarInput) {
-        avatarInput.addEventListener('change', async () => {
-            const file = avatarInput.files[0];
 
-            if (!file) {
-                return;
-            }
+        avatarInput.addEventListener(
+            'change',
+            async () => {
 
-            // ----------------------------------------------------
-            // Validate file type
-            // ----------------------------------------------------
-            const allowedTypes = [
-                'image/jpeg',
-                'image/png',
-                'image/webp'
-            ];
+                const file =
+                    avatarInput.files &&
+                    avatarInput.files[0];
 
-            if (!allowedTypes.includes(file.type)) {
-                showToast(
-                    'Only JPG, PNG, or WEBP images are allowed.',
-                    'error'
-                );
-
-                avatarInput.value = '';
-                return;
-            }
-
-            // ----------------------------------------------------
-            // Validate file size
-            // ----------------------------------------------------
-            const maxSize = 3 * 1024 * 1024;
-
-            if (file.size > maxSize) {
-                showToast(
-                    'Profile image must be 3MB or smaller.',
-                    'error'
-                );
-
-                avatarInput.value = '';
-                return;
-            }
-
-            try {
-                showToast(
-                    'Uploading profile image...',
-                    'success'
-                );
-
-                avatarInput.disabled = true;
-
-                // ------------------------------------------------
-                // Get Cloudinary upload signature
-                // ------------------------------------------------
-                const signatureResponse = await csrfFetch(
-                    '/api/cloudinary/upload-signature',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            resourceType: 'image'
-                        })
-                    }
-                );
-
-                const signatureData =
-                    await signatureResponse.json();
-
-                if (
-                    !signatureResponse.ok ||
-                    !signatureData.success
-                ) {
-                    throw new Error(
-                        signatureData.message ||
-                        'Could not prepare image upload.'
-                    );
+                if (!file) {
+                    return;
                 }
 
+
                 // ------------------------------------------------
-                // Upload image directly to Cloudinary
+                // Validate file type
                 // ------------------------------------------------
-                const cloudinaryFormData = new FormData();
+                const allowedTypes = [
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp'
+                ];
 
-                cloudinaryFormData.append(
-                    'file',
-                    file
-                );
+                if (!allowedTypes.includes(file.type)) {
 
-                cloudinaryFormData.append(
-                    'api_key',
-                    signatureData.apiKey
-                );
-
-                cloudinaryFormData.append(
-                    'timestamp',
-                    signatureData.timestamp
-                );
-
-                cloudinaryFormData.append(
-                    'signature',
-                    signatureData.signature
-                );
-
-                cloudinaryFormData.append(
-                    'folder',
-                    signatureData.folder
-                );
-
-                const cloudinaryResponse = await fetch(
-                    `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/image/upload`,
-                    {
-                        method: 'POST',
-                        body: cloudinaryFormData
-                    }
-                );
-
-                const cloudinaryData =
-                    await cloudinaryResponse.json();
-
-                if (
-                    !cloudinaryResponse.ok ||
-                    !cloudinaryData.secure_url
-                ) {
-                    throw new Error(
-                        cloudinaryData.error?.message ||
-                        'Cloudinary image upload failed.'
+                    showToast(
+                        'Only JPG, PNG, or WEBP images are allowed.',
+                        'error'
                     );
+
+                    avatarInput.value = '';
+
+                    return;
                 }
 
-                // ------------------------------------------------
-                // Send Cloudinary URL to our backend
-                // ------------------------------------------------
-                const saveResponse = await csrfFetch(
-                    '/profile/image',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            profile_image_url:
-                                cloudinaryData.secure_url
-                        })
-                    }
-                );
 
-                if (!saveResponse.ok) {
-                    throw new Error(
-                        'Could not save profile image.'
+                // ------------------------------------------------
+                // Validate file size
+                // ------------------------------------------------
+                const maxSize =
+                    3 * 1024 * 1024;
+
+                if (file.size > maxSize) {
+
+                    showToast(
+                        'Profile image must be 3MB or smaller.',
+                        'error'
                     );
+
+                    avatarInput.value = '';
+
+                    return;
                 }
 
-                showToast(
-                    'Profile image updated successfully.',
-                    'success'
-                );
 
-                // ------------------------------------------------
-                // Refresh profile page
-                // ------------------------------------------------
-                window.location.href =
-                    '/profile?updated=1';
+                try {
 
-            } catch (err) {
-                console.error(
-                    'Profile image upload error:',
-                    err
-                );
+                    avatarInput.disabled = true;
 
-                showToast(
-                    err.message ||
-                    'Something went wrong while uploading the image.',
-                    'error'
-                );
+                    showToast(
+                        'Preparing profile image upload...',
+                        'success'
+                    );
 
-                avatarInput.value = '';
-            } finally {
-                avatarInput.disabled = false;
+
+                    // ------------------------------------------------
+                    // STEP 1:
+                    // Get Cloudinary signature from backend
+                    // ------------------------------------------------
+                    const signatureResponse =
+                        await csrfFetch(
+                            '/api/cloudinary/upload-signature',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json',
+                                    'Accept':
+                                        'application/json'
+                                },
+
+                                body: JSON.stringify({
+                                    resourceType: 'image'
+                                })
+                            }
+                        );
+
+
+                    const signatureText =
+                        await signatureResponse.text();
+
+                    let signatureData;
+
+                    try {
+
+                        signatureData =
+                            JSON.parse(
+                                signatureText
+                            );
+
+                    } catch (parseError) {
+
+                        console.error(
+                            'Invalid signature response:',
+                            signatureText
+                        );
+
+                        throw new Error(
+                            'Server returned an invalid upload response.'
+                        );
+                    }
+
+
+                    if (
+                        !signatureResponse.ok ||
+                        !signatureData.success
+                    ) {
+
+                        throw new Error(
+                            signatureData.message ||
+                            signatureData.error ||
+                            `Could not prepare image upload (${signatureResponse.status}).`
+                        );
+                    }
+
+
+                    if (
+                        !signatureData.cloudName ||
+                        !signatureData.apiKey ||
+                        !signatureData.timestamp ||
+                        !signatureData.signature ||
+                        !signatureData.folder
+                    ) {
+
+                        console.error(
+                            'Incomplete Cloudinary signature:',
+                            signatureData
+                        );
+
+                        throw new Error(
+                            'Cloudinary configuration is incomplete.'
+                        );
+                    }
+
+
+                    // ------------------------------------------------
+                    // STEP 2:
+                    // Upload image directly to Cloudinary
+                    // ------------------------------------------------
+                    showToast(
+                        'Uploading profile image...',
+                        'success'
+                    );
+
+
+                    const cloudinaryFormData =
+                        new FormData();
+
+                    cloudinaryFormData.append(
+                        'file',
+                        file
+                    );
+
+                    cloudinaryFormData.append(
+                        'api_key',
+                        signatureData.apiKey
+                    );
+
+                    cloudinaryFormData.append(
+                        'timestamp',
+                        String(
+                            signatureData.timestamp
+                        )
+                    );
+
+                    cloudinaryFormData.append(
+                        'signature',
+                        signatureData.signature
+                    );
+
+                    cloudinaryFormData.append(
+                        'folder',
+                        signatureData.folder
+                    );
+
+
+                    const cloudinaryUrl =
+                        `https://api.cloudinary.com/v1_1/` +
+                        `${encodeURIComponent(
+                            signatureData.cloudName
+                        )}/image/upload`;
+
+
+                    let cloudinaryResponse;
+
+                    try {
+
+                        cloudinaryResponse =
+                            await fetch(
+                                cloudinaryUrl,
+                                {
+                                    method: 'POST',
+                                    body:
+                                        cloudinaryFormData
+                                }
+                            );
+
+                    } catch (networkError) {
+
+                        console.error(
+                            'Cloudinary network error:',
+                            networkError
+                        );
+
+                        throw new Error(
+                            'Could not connect to Cloudinary.'
+                        );
+                    }
+
+
+                    const cloudinaryText =
+                        await cloudinaryResponse.text();
+
+                    let cloudinaryData;
+
+                    try {
+
+                        cloudinaryData =
+                            JSON.parse(
+                                cloudinaryText
+                            );
+
+                    } catch (parseError) {
+
+                        console.error(
+                            'Invalid Cloudinary response:',
+                            cloudinaryText
+                        );
+
+                        throw new Error(
+                            'Cloudinary returned an invalid response.'
+                        );
+                    }
+
+
+                    if (
+                        !cloudinaryResponse.ok ||
+                        !cloudinaryData.secure_url
+                    ) {
+
+                        console.error(
+                            'Cloudinary upload failed:',
+                            cloudinaryData
+                        );
+
+                        throw new Error(
+                            cloudinaryData.error?.message ||
+                            `Cloudinary upload failed (${cloudinaryResponse.status}).`
+                        );
+                    }
+
+
+                    const imageUrl =
+                        cloudinaryData.secure_url;
+
+
+                    console.log(
+                        'Cloudinary image uploaded:',
+                        imageUrl
+                    );
+
+
+                    // ------------------------------------------------
+                    // STEP 3:
+                    // Save Cloudinary URL in MySQL through backend
+                    // ------------------------------------------------
+                    showToast(
+                        'Saving profile image...',
+                        'success'
+                    );
+
+
+                    const saveResponse =
+                        await csrfFetch(
+                            '/profile/image',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json',
+                                    'Accept':
+                                        'application/json'
+                                },
+
+                                body: JSON.stringify({
+                                    profile_image_url:
+                                        imageUrl
+                                })
+                            }
+                        );
+
+
+                    const saveText =
+                        await saveResponse.text();
+
+                    let saveData = {};
+
+                    try {
+
+                        if (saveText) {
+                            saveData =
+                                JSON.parse(
+                                    saveText
+                                );
+                        }
+
+                    } catch (parseError) {
+
+                        // The backend may return HTML
+                        // for a redirect/error.
+                        console.warn(
+                            'Profile save response was not JSON:',
+                            saveText
+                        );
+                    }
+
+
+                    if (!saveResponse.ok) {
+
+                        console.error(
+                            'Profile image save failed:',
+                            {
+                                status:
+                                    saveResponse.status,
+                                response:
+                                    saveText
+                            }
+                        );
+
+                        throw new Error(
+                            saveData.message ||
+                            'Could not save profile image.'
+                        );
+                    }
+
+
+                    // ------------------------------------------------
+                    // SUCCESS
+                    // ------------------------------------------------
+                    showToast(
+                        'Profile image updated successfully.',
+                        'success'
+                    );
+
+
+                    // Give the toast a moment to appear
+                    setTimeout(() => {
+                        window.location.href =
+                            '/profile?updated=1';
+                    }, 500);
+
+
+                } catch (err) {
+
+                    console.error(
+                        'Profile image upload error:',
+                        err
+                    );
+
+                    showToast(
+                        err.message ||
+                        'Something went wrong while uploading the image.',
+                        'error'
+                    );
+
+                    avatarInput.value = '';
+
+                } finally {
+
+                    avatarInput.disabled = false;
+                }
             }
-        });
+        );
     }
+
 
     // ------------------------------------------------------------
     // Password change
     // ------------------------------------------------------------
     const pwForm =
-        document.getElementById('passwordChangeForm');
+        document.getElementById(
+            'passwordChangeForm'
+        );
 
     if (pwForm) {
+
         pwForm.addEventListener(
             'submit',
             async (e) => {
+
                 e.preventDefault();
 
                 const formData =
@@ -237,48 +453,96 @@ document.addEventListener('DOMContentLoaded', () => {
                         'button[type="submit"]'
                     );
 
-                btn.disabled = true;
+                if (btn) {
+                    btn.disabled = true;
+                }
+
 
                 try {
-                    const res = await csrfFetch(
-                        '/profile/password',
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type':
-                                    'application/json'
-                            },
-                            body: JSON.stringify(body)
-                        }
-                    );
 
-                    const data =
-                        await res.json();
+                    const response =
+                        await csrfFetch(
+                            '/profile/password',
+                            {
+                                method: 'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json',
+                                    'Accept':
+                                        'application/json'
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        body
+                                    )
+                            }
+                        );
+
+
+                    const text =
+                        await response.text();
+
+                    let data = {};
+
+                    try {
+
+                        data =
+                            JSON.parse(text);
+
+                    } catch (parseError) {
+
+                        console.error(
+                            'Invalid password response:',
+                            text
+                        );
+
+                        throw new Error(
+                            'Server returned an invalid response.'
+                        );
+                    }
+
 
                     showToast(
-                        data.message,
+                        data.message ||
+                        (
+                            response.ok
+                                ? 'Password updated successfully.'
+                                : 'Password update failed.'
+                        ),
                         data.success
                             ? 'success'
                             : 'error'
                     );
 
+
                     if (data.success) {
                         pwForm.reset();
                     }
+
                 } catch (err) {
+
                     console.error(
                         'Password change error:',
                         err
                     );
 
                     showToast(
+                        err.message ||
                         'Something went wrong.',
                         'error'
                     );
-                }
 
-                btn.disabled = false;
+                } finally {
+
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                }
             }
         );
     }
+
 });
+```
