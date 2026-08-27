@@ -11,7 +11,8 @@ const profileController = require('../controllers/profileController');
 
 const { isAuthenticated, isAuthenticatedOrAdmin } = require('../middleware/auth');
 const { verifyToken } = require('../middleware/csrf');
-const { uploadProfileImage } = require('../config/multer');
+// No uploadProfileImage middleware needed.
+// Profile images are uploaded directly to Cloudinary.
 
 // Home
 router.get('/', indexController.home);
@@ -114,7 +115,6 @@ router.post(
 router.post(
     '/profile/image',
     isAuthenticated,
-    uploadProfileImage,
     verifyToken,
     profileController.updateProfileImage
 );
