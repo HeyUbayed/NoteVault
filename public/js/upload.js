@@ -9,7 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFileDrop(
         'thumbDrop',
         'thumbnail',
-        (file) => file.type.startsWith('image/'),
+        (file) => {
+            const allowed = [
+                'image/jpeg',
+                'image/png',
+                'image/webp'
+            ];
+            return allowed.includes(file.type);
+        },
         'thumbDropLabel'
     );
 
@@ -20,46 +27,65 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = drop.querySelector(`input[name="${inputName}"]`);
         const label = document.getElementById(labelId);
 
-        ['dragenter', 'dragover'].forEach((evt) => {
-            drop.addEventListener(evt, (e) => {
-                e.preventDefault();
+        if (!input) return;
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            drop.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 drop.classList.add('dragover');
             });
         });
 
-        ['dragleave', 'drop'].forEach((evt) => {
-            drop.addEventListener(evt, (e) => {
-                e.preventDefault();
+        ['dragleave', 'drop'].forEach((eventName) => {
+            drop.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 drop.classList.remove('dragover');
             });
         });
 
-        drop.addEventListener('drop', (e) => {
-            const file = e.dataTransfer.files[0];
+        drop.addEventListener('drop', (event) => {
+            const files = event.dataTransfer.files;
 
-            if (file && validator(file)) {
-                try {
-                    input.files = e.dataTransfer.files;
-                    updateLabel(file);
-                } catch (err) {
-                    console.error('Unable to set selected file:', err);
-                }
-            } else if (file) {
+            if (!files || !files.length) return;
+
+            const file = files[0];
+
+            if (!validator(file)) {
                 showToast('Invalid file type for this field.', 'error');
+                return;
+            }
+
+            try {
+                input.files = files;
+                updateLabel(file);
+            } catch (error) {
+                console.error('Could not set dropped file:', error);
             }
         });
 
         input.addEventListener('change', () => {
-            if (input.files[0]) {
-                updateLabel(input.files[0]);
+            if (!input.files || !input.files.length) return;
+
+            const file = input.files[0];
+
+            if (!validator(file)) {
+                input.value = '';
+                showToast('Invalid file type for this field.', 'error');
+                return;
             }
+
+            updateLabel(file);
         });
 
         function updateLabel(file) {
-            if (label) {
-                label.textContent =
-                    `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
-            }
+            if (!label) return;
+
+            const sizeMB = file.size / (1024 * 1024);
+
+            label.textContent =
+                `${file.name} (${sizeMB.toFixed(2)} MB)`;
         }
     }
 
@@ -67,32 +93,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!uploadForm) return;
 
-    // ------------------------------------------------------------
-    // Get Cloudinary signature
-    // ------------------------------------------------------------
     async function getCloudinarySignature(resourceType, csrfToken) {
-        const response = await fetch('/api/cloudinary/upload-signature', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                resourceType
-            })
-        });
+        const response = await fetch(
+            '/api/cloudinary/upload-signature',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    resourceType
+                })
+            }
+        );
 
-        const text = await response.text();
+        const responseText = await response.text();
 
         let data;
 
         try {
-            data = JSON.parse(text);
-        } catch (err) {
-            console.error('Invalid signature response:', text);
-            throw new Error('Server returned an invalid Cloudinary response.');
+            data = JSON.parse(responseText);
+        } catch (error) {
+            console.error('Invalid signature response:', responseText);
+            throw new Error(
+                'The server returned an invalid Cloudinary response.'
+            );
         }
 
         if (!response.ok || !data.success) {
@@ -102,13 +130,26 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
+        if (
+            !data.cloudName ||
+            !data.apiKey ||
+            !data.timestamp ||
+            !data.signature ||
+            !data.folder
+        ) {
+            throw new Error(
+                'Cloudinary upload configuration is incomplete.'
+            );
+        }
+
         return data;
     }
 
-    // ------------------------------------------------------------
-    // Upload directly to Cloudinary
-    // ------------------------------------------------------------
-    async function uploadToCloudinary(file, resourceType, signatureData) {
+    async function uploadToCloudinary(
+        file,
+        resourceType,
+        signatureData
+    ) {
         const formData = new FormData();
 
         formData.append('file', file);
@@ -125,27 +166,44 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Uploading to Cloudinary:', {
             resourceType,
             folder: signatureData.folder,
-            cloudName: signatureData.cloudName
+            fileName: file.name,
+            fileSize: file.size
         });
 
-        const response = await fetch(cloudinaryUrl, {
-            method: 'POST',
-            body: formData
-        });
+        let response;
 
-        const text = await response.text();
+        try {
+            response = await fetch(cloudinaryUrl, {
+                method: 'POST',
+                body: formData
+            });
+        } catch (error) {
+            console.error('Cloudinary network error:', error);
+
+            throw new Error(
+                'Failed to connect to Cloudinary. Check your Cloudinary configuration and browser console.'
+            );
+        }
+
+        const responseText = await response.text();
 
         let result;
 
         try {
-            result = JSON.parse(text);
-        } catch (err) {
-            console.error('Invalid Cloudinary response:', text);
-            throw new Error('Cloudinary returned an invalid response.');
+            result = JSON.parse(responseText);
+        } catch (error) {
+            console.error('Invalid Cloudinary response:', responseText);
+
+            throw new Error(
+                'Cloudinary returned an invalid response.'
+            );
         }
 
-        if (!response.ok || !result.secure_url) {
-            console.error('Cloudinary upload failed:', result);
+        if (!response.ok) {
+            console.error('Cloudinary upload failed:', {
+                status: response.status,
+                result
+            });
 
             throw new Error(
                 result.error?.message ||
@@ -153,14 +211,22 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
+        if (!result.secure_url) {
+            throw new Error(
+                'Cloudinary did not return a file URL.'
+            );
+        }
+
+        console.log(
+            'Cloudinary upload successful:',
+            result.secure_url
+        );
+
         return result;
     }
 
-    // ------------------------------------------------------------
-    // Submit upload form
-    // ------------------------------------------------------------
-    uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    uploadForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
         const pdfInput =
             uploadForm.querySelector('input[name="pdf"]');
@@ -168,38 +234,49 @@ document.addEventListener('DOMContentLoaded', () => {
         const thumbnailInput =
             uploadForm.querySelector('input[name="thumbnail"]');
 
-        if (!pdfInput?.files?.[0]) {
-            showToast('Please select a PDF file to upload.', 'error');
+        if (
+            !pdfInput ||
+            !pdfInput.files ||
+            !pdfInput.files[0]
+        ) {
+            showToast(
+                'Please select a PDF file to upload.',
+                'error'
+            );
             return;
         }
 
         const pdfFile = pdfInput.files[0];
 
-        // --------------------------------------------------------
-        // Validate PDF
-        // --------------------------------------------------------
         if (pdfFile.type !== 'application/pdf') {
-            showToast('Only PDF files are allowed.', 'error');
+            showToast(
+                'Only PDF files are allowed.',
+                'error'
+            );
             return;
         }
 
-        const maxPdfSize = 100 * 1024 * 1024;
+        const MAX_PDF_SIZE = 100 * 1024 * 1024;
 
-        if (pdfFile.size > maxPdfSize) {
-            showToast('PDF must be 100MB or smaller.', 'error');
+        if (pdfFile.size > MAX_PDF_SIZE) {
+            showToast(
+                'PDF must be 100MB or smaller.',
+                'error'
+            );
             return;
         }
 
-        // --------------------------------------------------------
-        // Validate thumbnail
-        // --------------------------------------------------------
         const thumbnailFile =
-            thumbnailInput?.files?.[0] || null;
+            thumbnailInput &&
+            thumbnailInput.files &&
+            thumbnailInput.files[0]
+                ? thumbnailInput.files[0]
+                : null;
 
         if (thumbnailFile) {
-            const maxThumbSize = 3 * 1024 * 1024;
+            const MAX_THUMB_SIZE = 3 * 1024 * 1024;
 
-            if (thumbnailFile.size > maxThumbSize) {
+            if (thumbnailFile.size > MAX_THUMB_SIZE) {
                 showToast(
                     'Thumbnail must be 3MB or smaller.',
                     'error'
@@ -225,12 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn =
             uploadForm.querySelector('button[type="submit"]');
 
-        submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Preparing upload...';
+        }
 
         try {
-            // ----------------------------------------------------
-            // CSRF
-            // ----------------------------------------------------
             const csrfInput =
                 uploadForm.querySelector('input[name="_csrf"]');
 
@@ -239,14 +316,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!csrfToken) {
                 throw new Error(
-                    'Security token missing. Please refresh the page and try again.'
+                    'Security token missing. Refresh the page and try again.'
                 );
             }
 
-            // ----------------------------------------------------
-            // 1. Get PDF signature
-            // ----------------------------------------------------
-            submitBtn.innerHTML = 'Preparing PDF upload...';
+            // Upload PDF directly to Cloudinary
+            if (submitBtn) {
+                submitBtn.textContent =
+                    'Preparing PDF upload...';
+            }
 
             const pdfSignature =
                 await getCloudinarySignature(
@@ -254,10 +332,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     csrfToken
                 );
 
-            // ----------------------------------------------------
-            // 2. Upload PDF directly to Cloudinary
-            // ----------------------------------------------------
-            submitBtn.innerHTML = 'Uploading PDF...';
+            if (submitBtn) {
+                submitBtn.textContent =
+                    'Uploading PDF...';
+            }
 
             const pdfResult =
                 await uploadToCloudinary(
@@ -266,53 +344,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     pdfSignature
                 );
 
-            const pdfUrl = pdfResult.secure_url;
+            const pdfUrl =
+                pdfResult.secure_url;
 
-            console.log('PDF uploaded successfully:', pdfUrl);
-
-            // ----------------------------------------------------
-            // 3. Upload thumbnail if provided
-            // ----------------------------------------------------
+            // Upload thumbnail directly to Cloudinary
             let thumbnailUrl = '';
 
             if (thumbnailFile) {
-                submitBtn.innerHTML =
-                    'Preparing thumbnail upload...';
+                if (submitBtn) {
+                    submitBtn.textContent =
+                        'Preparing thumbnail upload...';
+                }
 
-                const thumbSignature =
+                const thumbnailSignature =
                     await getCloudinarySignature(
                         'image',
                         csrfToken
                     );
 
-                submitBtn.innerHTML =
-                    'Uploading thumbnail...';
+                if (submitBtn) {
+                    submitBtn.textContent =
+                        'Uploading thumbnail...';
+                }
 
-                const thumbResult =
+                const thumbnailResult =
                     await uploadToCloudinary(
                         thumbnailFile,
                         'image',
-                        thumbSignature
+                        thumbnailSignature
                     );
 
                 thumbnailUrl =
-                    thumbResult.secure_url;
-
-                console.log(
-                    'Thumbnail uploaded successfully:',
-                    thumbnailUrl
-                );
+                    thumbnailResult.secure_url;
             }
 
-            // ----------------------------------------------------
-            // 4. Send only text + Cloudinary URLs to Vercel
-            // ----------------------------------------------------
-            submitBtn.innerHTML = 'Saving note...';
+            // Send only normal form data + Cloudinary URLs to Vercel
+            if (submitBtn) {
+                submitBtn.textContent =
+                    'Saving note...';
+            }
 
             const formData =
                 new FormData(uploadForm);
 
-            // Never send the actual files to Vercel.
+            // Do not send the actual files to Vercel
             formData.delete('pdf');
             formData.delete('thumbnail');
 
@@ -322,13 +397,15 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             formData.append(
+                'file_size',
+                String(pdfFile.size)
+            );
+
+            formData.append(
                 'thumbnail',
                 thumbnailUrl
             );
 
-            // ----------------------------------------------------
-            // 5. Save note in MySQL
-            // ----------------------------------------------------
             const saveResponse =
                 await fetch('/upload', {
                     method: 'POST',
@@ -336,14 +413,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     credentials: 'same-origin'
                 });
 
+            if (saveResponse.redirected) {
+                window.location.href =
+                    saveResponse.url;
+                return;
+            }
+
             if (!saveResponse.ok) {
-                const text =
+                const responseText =
                     await saveResponse.text();
 
                 console.error(
                     'Save note failed:',
-                    saveResponse.status,
-                    text
+                    responseText
                 );
 
                 throw new Error(
@@ -351,9 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
-            // The server returns a redirect.
             window.location.href =
-                saveResponse.url;
+                saveResponse.url || '/dashboard';
 
         } catch (error) {
             console.error(
@@ -367,21 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 'error'
             );
 
-            submitBtn.disabled = false;
-
-            submitBtn.innerHTML = `
-                <svg width="17" height="17"
-                     viewBox="0 0 24 24"
-                     fill="none">
-                    <path
-                        d="M12 4v13m0 0l-4.5-4.5M12 17l4.5-4.5M4 21h16"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"/>
-                </svg>
-                Upload Note &amp; Earn 5 Credits
-            `;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent =
+                    'Upload Note & Earn 5 Credits';
+            }
         }
     });
 });
