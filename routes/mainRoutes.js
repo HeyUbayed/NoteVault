@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+const cloudinaryController = require('../controllers/cloudinaryController');
 const indexController = require('../controllers/indexController');
 const dashboardController = require('../controllers/dashboardController');
 const uploadController = require('../controllers/uploadController');
@@ -124,6 +125,13 @@ router.post(
     isAuthenticated,
     verifyToken,
     profileController.changePassword
+);
+
+router.post(
+    '/api/cloudinary/upload-signature',
+    isAuthenticated,
+    verifyToken,
+    cloudinaryController.createUploadSignature
 );
 
 module.exports = router;
