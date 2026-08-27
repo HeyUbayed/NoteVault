@@ -1,24 +1,55 @@
-const path = require('path');
-const fs = require('fs');
 const sanitizeHtml = require('sanitize-html');
+
 const Note = require('../models/Note');
 const User = require('../models/User');
 const CreditHistory = require('../models/CreditHistory');
+const cloudinary = require('../config/cloudinary');
 
 const UPLOAD_REWARD = 5;
 
-// Strips all HTML/markup from free-text fields before they ever reach the database.
+// ------------------------------------------------------------
+// Clean text
+// ------------------------------------------------------------
 function clean(str) {
-    return sanitizeHtml((str || '').trim(), { allowedTags: [], allowedAttributes: {} });
+    return sanitizeHtml((str || '').trim(), {
+        allowedTags: [],
+        allowedAttributes: {}
+    });
 }
 
+// ------------------------------------------------------------
+// Upload buffer to Cloudinary
+// ------------------------------------------------------------
+function uploadToCloudinary(buffer, options = {}) {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            options,
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+
+                resolve(result);
+            }
+        );
+
+        stream.end(buffer);
+    });
+}
+
+// ------------------------------------------------------------
+// Upload form
+// ------------------------------------------------------------
 exports.showUploadForm = (req, res) => {
-    res.render('upload', { title: 'Upload a Note', errors: [] });
+    res.render('upload', {
+        title: 'Upload a Note',
+        errors: []
+    });
 };
 
-// Matches the VARCHAR limits in database/schema.sql. Enforced here so an
-// over-length field produces a friendly validation message instead of an
-// unhandled "Data too long for column" database error.
+// ------------------------------------------------------------
+// Database field limits
+// ------------------------------------------------------------
 const FIELD_LIMITS = {
     title: 200,
     description: 1000,
@@ -32,65 +63,153 @@ const FIELD_LIMITS = {
 function firstLengthError(fields) {
     for (const [field, limit] of Object.entries(FIELD_LIMITS)) {
         if ((fields[field] || '').length > limit) {
-            return `${field.charAt(0).toUpperCase() + field.slice(1)} must be ${limit} characters or fewer.`;
+            return `${
+                field.charAt(0).toUpperCase() + field.slice(1)
+            } must be ${limit} characters or fewer.`;
         }
     }
+
     return null;
 }
 
+// ------------------------------------------------------------
+// Handle note upload
+// ------------------------------------------------------------
 exports.handleUpload = async (req, res, next) => {
     try {
-        const { title, description, department, semester, course, teacher, tags } = req.body;
+        const {
+            title,
+            description,
+            department,
+            semester,
+            course,
+            teacher,
+            tags
+        } = req.body;
+
         const files = req.files || {};
 
+        // ----------------------------------------------------
+        // PDF required
+        // ----------------------------------------------------
         if (!files.pdf || !files.pdf[0]) {
             return res.status(400).render('upload', {
                 title: 'Upload a Note',
-                errors: [{ msg: 'A PDF file is required.' }]
+                errors: [
+                    {
+                        msg: 'A PDF file is required.'
+                    }
+                ]
             });
         }
 
+        // ----------------------------------------------------
+        // Required fields
+        // ----------------------------------------------------
         if (!title || !department || !semester || !course) {
-            // clean up uploaded files since we're rejecting
-            files.pdf?.forEach(f => fs.unlink(f.path, () => {}));
-            files.thumbnail?.forEach(f => fs.unlink(f.path, () => {}));
             return res.status(400).render('upload', {
                 title: 'Upload a Note',
-                errors: [{ msg: 'Title, department, semester, and course are required.' }]
+                errors: [
+                    {
+                        msg:
+                            'Title, department, semester, and course are required.'
+                    }
+                ]
             });
         }
 
-        const lengthError = firstLengthError({ title, description, department, semester, course, teacher, tags });
+        // ----------------------------------------------------
+        // Field length validation
+        // ----------------------------------------------------
+        const lengthError = firstLengthError({
+            title,
+            description,
+            department,
+            semester,
+            course,
+            teacher,
+            tags
+        });
+
         if (lengthError) {
-            files.pdf?.forEach(f => fs.unlink(f.path, () => {}));
-            files.thumbnail?.forEach(f => fs.unlink(f.path, () => {}));
             return res.status(400).render('upload', {
                 title: 'Upload a Note',
-                errors: [{ msg: lengthError }]
+                errors: [
+                    {
+                        msg: lengthError
+                    }
+                ]
             });
         }
 
         const pdfFile = files.pdf[0];
-        const thumbFile = files.thumbnail ? files.thumbnail[0] : null;
 
-        const pdfPath = `/uploads/pdfs/${pdfFile.filename}`;
-        const thumbPath = thumbFile ? `/uploads/thumbnails/${thumbFile.filename}` : '/images/default-thumbnail.png';
+        const thumbFile =
+            files.thumbnail && files.thumbnail[0]
+                ? files.thumbnail[0]
+                : null;
 
+        // ----------------------------------------------------
+        // Upload PDF to Cloudinary
+        // ----------------------------------------------------
+        const pdfResult = await uploadToCloudinary(
+            pdfFile.buffer,
+            {
+                resource_type: 'raw',
+                folder: 'notevault/pdfs',
+                public_id: `note-${Date.now()}`
+            }
+        );
+
+        // ----------------------------------------------------
+        // Upload thumbnail
+        // ----------------------------------------------------
+        let thumbPath = '/images/default-thumbnail.png';
+
+        if (thumbFile) {
+            const thumbnailResult = await uploadToCloudinary(
+                thumbFile.buffer,
+                {
+                    resource_type: 'image',
+                    folder: 'notevault/thumbnails',
+                    public_id: `thumbnail-${Date.now()}`
+                }
+            );
+
+            thumbPath = thumbnailResult.secure_url;
+        }
+
+        // ----------------------------------------------------
+        // Create database record
+        // ----------------------------------------------------
         const noteId = await Note.create({
             title: clean(title),
             description: clean(description),
-            pdf_path: pdfPath,
+
+            // Cloudinary URL instead of /uploads/pdfs/...
+            pdf_path: pdfResult.secure_url,
+
+            // Cloudinary URL or default image
             thumbnail: thumbPath,
-            department,
-            semester,
+
+            department: clean(department),
+            semester: clean(semester),
             course: clean(course),
             teacher: clean(teacher),
             tags: clean(tags),
+
             uploaded_by: req.session.userId,
             file_size: pdfFile.size
         });
 
-        const newBalance = await User.adjustCredit(req.session.userId, UPLOAD_REWARD);
+        // ----------------------------------------------------
+        // Give upload credit
+        // ----------------------------------------------------
+        const newBalance = await User.adjustCredit(
+            req.session.userId,
+            UPLOAD_REWARD
+        );
+
         await CreditHistory.log({
             userId: req.session.userId,
             action: `Uploaded note: ${clean(title)}`,
@@ -98,8 +217,13 @@ exports.handleUpload = async (req, res, next) => {
             balance: newBalance
         });
 
+        // ----------------------------------------------------
+        // Success
+        // ----------------------------------------------------
         res.redirect(`/notes/${noteId}?uploaded=1`);
+
     } catch (err) {
+        console.error('Note upload error:', err);
         next(err);
     }
 };
