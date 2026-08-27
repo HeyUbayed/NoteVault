@@ -1,221 +1,51 @@
-const sanitizeHtml = require('sanitize-html');
-
+const { uploadToCloudinary } = require('../config/cloudinary');
 const Note = require('../models/Note');
-const User = require('../models/User');
-const CreditHistory = require('../models/CreditHistory');
 
-const UPLOAD_REWARD = 5;
-
-// ------------------------------------------------------------
-// Clean user-provided text
-// ------------------------------------------------------------
-function clean(str) {
-    return sanitizeHtml((str || '').trim(), {
-        allowedTags: [],
-        allowedAttributes: {}
-    });
-}
-
-// ------------------------------------------------------------
-// Upload page
-// ------------------------------------------------------------
-exports.showUploadForm = (req, res) => {
-    res.render('upload', {
-        title: 'Upload a Note',
-        errors: []
-    });
+exports.renderUploadPage = (req, res) => {
+  res.render('upload', { error: null });
 };
 
-// ------------------------------------------------------------
-// Database field limits
-// ------------------------------------------------------------
-const FIELD_LIMITS = {
-    title: 200,
-    description: 1000,
-    department: 100,
-    semester: 50,
-    course: 150,
-    teacher: 150,
-    tags: 300
-};
-
-function firstLengthError(fields) {
-    for (const [field, limit] of Object.entries(FIELD_LIMITS)) {
-        if ((fields[field] || '').length > limit) {
-            return `${field.charAt(0).toUpperCase() + field.slice(1)} must be ${limit} characters or fewer.`;
-        }
+exports.handleFileUpload = async (req, res) => {
+  try {
+    if (!req.files || !req.files.pdfFile) {
+      return res.status(400).render('upload', { error: 'Please select a PDF file to upload.' });
     }
 
-    return null;
-}
+    const pdfFile = req.files.pdfFile[0];
+    const thumbnailFile = req.files.thumbnail ? req.files.thumbnail[0] : null;
 
-// ------------------------------------------------------------
-// Handle note upload
-// ------------------------------------------------------------
-// Files are uploaded DIRECTLY from the browser to Cloudinary.
-// Vercel does NOT receive the PDF/image file.
-//
-// The browser sends only:
-// - pdf_path
-// - thumbnail
-// - normal form fields
-// ------------------------------------------------------------
-exports.handleUpload = async (req, res, next) => {
-    try {
-        const {
-            title,
-            description,
-            department,
-            semester,
-            course,
-            teacher,
-            tags,
-            pdf_path,
-            thumbnail
-        } = req.body;
+    // 1. Upload PDF to Cloudinary as raw file type
+    const pdfResult = await uploadToCloudinary(
+      pdfFile.buffer,
+      'notevault/pdfs',
+      'raw'
+    );
 
-        // --------------------------------------------------------
-        // Validate Cloudinary PDF URL
-        // --------------------------------------------------------
-        if (!pdf_path) {
-            return res.status(400).render('upload', {
-                title: 'Upload a Note',
-                errors: [
-                    {
-                        msg: 'PDF upload failed. Please upload the PDF again.'
-                    }
-                ]
-            });
-        }
-
-        // --------------------------------------------------------
-        // Validate required fields
-        // --------------------------------------------------------
-        if (!title || !department || !semester || !course) {
-            return res.status(400).render('upload', {
-                title: 'Upload a Note',
-                errors: [
-                    {
-                        msg: 'Title, department, semester, and course are required.'
-                    }
-                ]
-            });
-        }
-
-        // --------------------------------------------------------
-        // Validate field lengths
-        // --------------------------------------------------------
-        const lengthError = firstLengthError({
-            title,
-            description,
-            department,
-            semester,
-            course,
-            teacher,
-            tags
-        });
-
-        if (lengthError) {
-            return res.status(400).render('upload', {
-                title: 'Upload a Note',
-                errors: [
-                    {
-                        msg: lengthError
-                    }
-                ]
-            });
-        }
-
-        // --------------------------------------------------------
-        // Basic Cloudinary URL validation
-        // --------------------------------------------------------
-        if (
-            typeof pdf_path !== 'string' ||
-            !pdf_path.startsWith('https://res.cloudinary.com/')
-        ) {
-            return res.status(400).render('upload', {
-                title: 'Upload a Note',
-                errors: [
-                    {
-                        msg: 'Invalid PDF upload URL.'
-                    }
-                ]
-            });
-        }
-
-        let thumbnailPath = '/images/default-thumbnail.png';
-
-        if (thumbnail) {
-            if (
-                typeof thumbnail !== 'string' ||
-                !thumbnail.startsWith('https://res.cloudinary.com/')
-            ) {
-                return res.status(400).render('upload', {
-                    title: 'Upload a Note',
-                    errors: [
-                        {
-                            msg: 'Invalid thumbnail upload URL.'
-                        }
-                    ]
-                });
-            }
-
-            thumbnailPath = thumbnail;
-        }
-
-        // --------------------------------------------------------
-        // File size
-        // --------------------------------------------------------
-        // Since the browser uploads directly to Cloudinary,
-        // the backend no longer receives the actual file.
-        //
-        // upload.js can send the size to us.
-        // If unavailable, default to 0.
-        // --------------------------------------------------------
-        const fileSize = Number(req.body.file_size) || 0;
-
-        // --------------------------------------------------------
-        // Create note
-        // --------------------------------------------------------
-        const cleanedTitle = clean(title);
-
-        const noteId = await Note.create({
-            title: cleanedTitle,
-            description: clean(description),
-            pdf_path: pdf_path,
-            thumbnail: thumbnailPath,
-            department: clean(department),
-            semester: clean(semester),
-            course: clean(course),
-            teacher: clean(teacher),
-            tags: clean(tags),
-            uploaded_by: req.session.userId,
-            file_size: fileSize
-        });
-
-        // --------------------------------------------------------
-        // Reward uploader
-        // --------------------------------------------------------
-        const newBalance = await User.adjustCredit(
-            req.session.userId,
-            UPLOAD_REWARD
-        );
-
-        await CreditHistory.log({
-            userId: req.session.userId,
-            action: `Uploaded note: ${cleanedTitle}`,
-            creditChange: UPLOAD_REWARD,
-            balance: newBalance
-        });
-
-        // --------------------------------------------------------
-        // Success
-        // --------------------------------------------------------
-        return res.redirect(
-            `/notes/${noteId}?uploaded=1`
-        );
-
-    } catch (err) {
-        next(err);
+    // 2. Upload Thumbnail to Cloudinary (or use default image)
+    let thumbnailUrl = '/images/default-thumbnail.png';
+    if (thumbnailFile) {
+      const thumbResult = await uploadToCloudinary(
+        thumbnailFile.buffer,
+        'notevault/thumbnails',
+        'image'
+      );
+      thumbnailUrl = thumbResult.secure_url;
     }
+
+    // 3. Save to Database using Cloudinary URLs
+    const newNote = await Note.create({
+      title: req.body.title,
+      description: req.body.description,
+      subject: req.body.subject,
+      courseCode: req.body.courseCode,
+      fileUrl: pdfResult.secure_url,
+      thumbnailUrl: thumbnailUrl,
+      userId: req.session.user.id
+    });
+
+    res.redirect(`/notes/${newNote.id}`);
+  } catch (error) {
+    console.error('Upload Controller Error:', error);
+    res.status(500).render('upload', { error: 'Upload failed. Please try again.' });
+  }
 };
