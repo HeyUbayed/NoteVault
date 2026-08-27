@@ -1,28 +1,25 @@
 const multer = require('multer');
 require('dotenv').config();
 
-const MAX_PDF_SIZE = (parseInt(process.env.MAX_PDF_SIZE_MB) || 100) * 1024 * 1024;
-const MAX_THUMB_SIZE = (parseInt(process.env.MAX_THUMB_SIZE_MB) || 3) * 1024 * 1024;
+const MAX_PDF_SIZE =
+    (parseInt(process.env.MAX_PDF_SIZE_MB) || 100) * 1024 * 1024;
 
-// ------------------------------------------------------------
-// Memory storage
-// ------------------------------------------------------------
-// Vercel has a read-only filesystem, so files must not be saved
-// to public/uploads. Multer keeps the uploaded file in memory
-// temporarily so it can be sent to Cloudinary.
-// ------------------------------------------------------------
+const MAX_THUMB_SIZE =
+    (parseInt(process.env.MAX_THUMB_SIZE_MB) || 3) * 1024 * 1024;
+
+// Vercel has a read-only filesystem.
+// Files are kept in memory temporarily and will be uploaded to Cloudinary.
 const storage = multer.memoryStorage();
 
-// ------------------------------------------------------------
-// File filter
-// ------------------------------------------------------------
 function fileFilter(req, file, cb) {
+    // PDF
     if (file.fieldname === 'pdf') {
         if (file.mimetype !== 'application/pdf') {
             return cb(new Error('Only PDF files are allowed for notes.'));
         }
     }
 
+    // Images
     if (
         file.fieldname === 'thumbnail' ||
         file.fieldname === 'profile_image'
@@ -34,7 +31,9 @@ function fileFilter(req, file, cb) {
         ];
 
         if (!allowed.includes(file.mimetype)) {
-            return cb(new Error('Only JPG, PNG, or WEBP images are allowed.'));
+            return cb(
+                new Error('Only JPG, PNG, or WEBP images are allowed.')
+            );
         }
     }
 
@@ -42,25 +41,31 @@ function fileFilter(req, file, cb) {
 }
 
 // ------------------------------------------------------------
-// Upload note
+// Note upload
 // ------------------------------------------------------------
 const uploadNote = multer({
-    storage: storage,
-    fileFilter: fileFilter,
+    storage,
+    fileFilter,
     limits: {
         fileSize: Math.max(MAX_PDF_SIZE, MAX_THUMB_SIZE)
     }
 }).fields([
-    { name: 'pdf', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
+    {
+        name: 'pdf',
+        maxCount: 1
+    },
+    {
+        name: 'thumbnail',
+        maxCount: 1
+    }
 ]);
 
 // ------------------------------------------------------------
-// Upload profile image
+// Profile image upload
 // ------------------------------------------------------------
 const uploadProfileImage = multer({
-    storage: storage,
-    fileFilter: fileFilter,
+    storage,
+    fileFilter,
     limits: {
         fileSize: MAX_THUMB_SIZE
     }
