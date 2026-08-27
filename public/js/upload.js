@@ -67,23 +67,117 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!uploadForm) return;
 
+    // ------------------------------------------------------------
+    // Get Cloudinary signature
+    // ------------------------------------------------------------
+    async function getCloudinarySignature(resourceType, csrfToken) {
+        const response = await fetch('/api/cloudinary/upload-signature', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                resourceType
+            })
+        });
+
+        const text = await response.text();
+
+        let data;
+
+        try {
+            data = JSON.parse(text);
+        } catch (err) {
+            console.error('Invalid signature response:', text);
+            throw new Error('Server returned an invalid Cloudinary response.');
+        }
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                `Could not prepare Cloudinary upload (${response.status}).`
+            );
+        }
+
+        return data;
+    }
+
+    // ------------------------------------------------------------
+    // Upload directly to Cloudinary
+    // ------------------------------------------------------------
+    async function uploadToCloudinary(file, resourceType, signatureData) {
+        const formData = new FormData();
+
+        formData.append('file', file);
+        formData.append('api_key', signatureData.apiKey);
+        formData.append('timestamp', String(signatureData.timestamp));
+        formData.append('signature', signatureData.signature);
+        formData.append('folder', signatureData.folder);
+
+        const cloudinaryUrl =
+            `https://api.cloudinary.com/v1_1/` +
+            `${encodeURIComponent(signatureData.cloudName)}/` +
+            `${resourceType}/upload`;
+
+        console.log('Uploading to Cloudinary:', {
+            resourceType,
+            folder: signatureData.folder,
+            cloudName: signatureData.cloudName
+        });
+
+        const response = await fetch(cloudinaryUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        const text = await response.text();
+
+        let result;
+
+        try {
+            result = JSON.parse(text);
+        } catch (err) {
+            console.error('Invalid Cloudinary response:', text);
+            throw new Error('Cloudinary returned an invalid response.');
+        }
+
+        if (!response.ok || !result.secure_url) {
+            console.error('Cloudinary upload failed:', result);
+
+            throw new Error(
+                result.error?.message ||
+                `Cloudinary upload failed (${response.status}).`
+            );
+        }
+
+        return result;
+    }
+
+    // ------------------------------------------------------------
+    // Submit upload form
+    // ------------------------------------------------------------
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const pdfInput = uploadForm.querySelector('input[name="pdf"]');
+        const pdfInput =
+            uploadForm.querySelector('input[name="pdf"]');
+
         const thumbnailInput =
             uploadForm.querySelector('input[name="thumbnail"]');
 
-        if (!pdfInput.files[0]) {
+        if (!pdfInput?.files?.[0]) {
             showToast('Please select a PDF file to upload.', 'error');
             return;
         }
 
         const pdfFile = pdfInput.files[0];
 
-        // ----------------------------------------------------
-        // Client-side PDF validation
-        // ----------------------------------------------------
+        // --------------------------------------------------------
+        // Validate PDF
+        // --------------------------------------------------------
         if (pdfFile.type !== 'application/pdf') {
             showToast('Only PDF files are allowed.', 'error');
             return;
@@ -96,227 +190,135 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // --------------------------------------------------------
+        // Validate thumbnail
+        // --------------------------------------------------------
+        const thumbnailFile =
+            thumbnailInput?.files?.[0] || null;
+
+        if (thumbnailFile) {
+            const maxThumbSize = 3 * 1024 * 1024;
+
+            if (thumbnailFile.size > maxThumbSize) {
+                showToast(
+                    'Thumbnail must be 3MB or smaller.',
+                    'error'
+                );
+                return;
+            }
+
+            const allowedImageTypes = [
+                'image/jpeg',
+                'image/png',
+                'image/webp'
+            ];
+
+            if (!allowedImageTypes.includes(thumbnailFile.type)) {
+                showToast(
+                    'Thumbnail must be JPG, PNG, or WEBP.',
+                    'error'
+                );
+                return;
+            }
+        }
+
         const submitBtn =
             uploadForm.querySelector('button[type="submit"]');
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Preparing upload...';
 
         try {
-            // ------------------------------------------------
-            // Get Cloudinary upload information
-            // ------------------------------------------------
+            // ----------------------------------------------------
+            // CSRF
+            // ----------------------------------------------------
             const csrfInput =
                 uploadForm.querySelector('input[name="_csrf"]');
 
-            const csrfToken = csrfInput ? csrfInput.value : '';
+            const csrfToken =
+                csrfInput ? csrfInput.value : '';
 
-            const signatureResponse = await fetch(
-                '/api/cloudinary/upload-signature',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        resourceType: 'raw'
-                    })
-                }
-            );
-
-            const signatureData = await signatureResponse.json();
-
-            if (!signatureResponse.ok) {
+            if (!csrfToken) {
                 throw new Error(
-                    signatureData.error ||
-                    'Could not prepare Cloudinary upload.'
+                    'Security token missing. Please refresh the page and try again.'
                 );
             }
 
-            // ------------------------------------------------
-            // Upload PDF DIRECTLY to Cloudinary
-            // ------------------------------------------------
+            // ----------------------------------------------------
+            // 1. Get PDF signature
+            // ----------------------------------------------------
+            submitBtn.innerHTML = 'Preparing PDF upload...';
+
+            const pdfSignature =
+                await getCloudinarySignature(
+                    'raw',
+                    csrfToken
+                );
+
+            // ----------------------------------------------------
+            // 2. Upload PDF directly to Cloudinary
+            // ----------------------------------------------------
             submitBtn.innerHTML = 'Uploading PDF...';
 
-            const pdfFormData = new FormData();
-
-            pdfFormData.append('file', pdfFile);
-            pdfFormData.append(
-                'api_key',
-                signatureData.apiKey
-            );
-            pdfFormData.append(
-                'timestamp',
-                signatureData.timestamp
-            );
-            pdfFormData.append(
-                'signature',
-                signatureData.signature
-            );
-            pdfFormData.append(
-                'folder',
-                signatureData.folder
-            );
-
-            const cloudinaryPdfUrl =
-                `https://api.cloudinary.com/v1_1/${encodeURIComponent(
-                    signatureData.cloudName
-                )}/raw/upload`;
-
-            const pdfResponse = await fetch(
-                cloudinaryPdfUrl,
-                {
-                    method: 'POST',
-                    body: pdfFormData
-                }
-            );
-
-            const pdfResult = await pdfResponse.json();
-
-            if (!pdfResponse.ok || !pdfResult.secure_url) {
-                console.error('Cloudinary PDF error:', pdfResult);
-
-                throw new Error(
-                    pdfResult.error?.message ||
-                    'PDF upload to Cloudinary failed.'
+            const pdfResult =
+                await uploadToCloudinary(
+                    pdfFile,
+                    'raw',
+                    pdfSignature
                 );
-            }
 
-            // ------------------------------------------------
-            // Upload thumbnail directly to Cloudinary
-            // ------------------------------------------------
+            const pdfUrl = pdfResult.secure_url;
+
+            console.log('PDF uploaded successfully:', pdfUrl);
+
+            // ----------------------------------------------------
+            // 3. Upload thumbnail if provided
+            // ----------------------------------------------------
             let thumbnailUrl = '';
 
-            if (
-                thumbnailInput &&
-                thumbnailInput.files &&
-                thumbnailInput.files[0]
-            ) {
-                const thumbnailFile = thumbnailInput.files[0];
+            if (thumbnailFile) {
+                submitBtn.innerHTML =
+                    'Preparing thumbnail upload...';
 
-                const maxThumbSize = 3 * 1024 * 1024;
-
-                if (thumbnailFile.size > maxThumbSize) {
-                    throw new Error(
-                        'Thumbnail must be 3MB or smaller.'
+                const thumbSignature =
+                    await getCloudinarySignature(
+                        'image',
+                        csrfToken
                     );
-                }
 
-                if (
-                    ![
-                        'image/jpeg',
-                        'image/png',
-                        'image/webp'
-                    ].includes(thumbnailFile.type)
-                ) {
-                    throw new Error(
-                        'Thumbnail must be JPG, PNG, or WEBP.'
-                    );
-                }
-
-                submitBtn.innerHTML = 'Uploading thumbnail...';
-
-                const thumbSignatureResponse = await fetch(
-                    '/api/cloudinary/upload-signature',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': csrfToken
-                        },
-                        body: JSON.stringify({
-                            resourceType: 'image'
-                        })
-                    }
-                );
-
-                const thumbSignatureData =
-                    await thumbSignatureResponse.json();
-
-                if (!thumbSignatureResponse.ok) {
-                    throw new Error(
-                        thumbSignatureData.error ||
-                        'Could not prepare thumbnail upload.'
-                    );
-                }
-
-                const thumbFormData = new FormData();
-
-                thumbFormData.append(
-                    'file',
-                    thumbnailFile
-                );
-
-                thumbFormData.append(
-                    'api_key',
-                    thumbSignatureData.apiKey
-                );
-
-                thumbFormData.append(
-                    'timestamp',
-                    thumbSignatureData.timestamp
-                );
-
-                thumbFormData.append(
-                    'signature',
-                    thumbSignatureData.signature
-                );
-
-                thumbFormData.append(
-                    'folder',
-                    thumbSignatureData.folder
-                );
-
-                const cloudinaryThumbUrl =
-                    `https://api.cloudinary.com/v1_1/${encodeURIComponent(
-                        thumbSignatureData.cloudName
-                    )}/image/upload`;
-
-                const thumbResponse = await fetch(
-                    cloudinaryThumbUrl,
-                    {
-                        method: 'POST',
-                        body: thumbFormData
-                    }
-                );
+                submitBtn.innerHTML =
+                    'Uploading thumbnail...';
 
                 const thumbResult =
-                    await thumbResponse.json();
-
-                if (
-                    !thumbResponse.ok ||
-                    !thumbResult.secure_url
-                ) {
-                    console.error(
-                        'Cloudinary thumbnail error:',
-                        thumbResult
+                    await uploadToCloudinary(
+                        thumbnailFile,
+                        'image',
+                        thumbSignature
                     );
 
-                    throw new Error(
-                        thumbResult.error?.message ||
-                        'Thumbnail upload failed.'
-                    );
-                }
+                thumbnailUrl =
+                    thumbResult.secure_url;
 
-                thumbnailUrl = thumbResult.secure_url;
+                console.log(
+                    'Thumbnail uploaded successfully:',
+                    thumbnailUrl
+                );
             }
 
-            // ------------------------------------------------
-            // Send ONLY text data + Cloudinary URLs to Vercel
-            // ------------------------------------------------
+            // ----------------------------------------------------
+            // 4. Send only text + Cloudinary URLs to Vercel
+            // ----------------------------------------------------
             submitBtn.innerHTML = 'Saving note...';
 
-            const formData = new FormData(uploadForm);
+            const formData =
+                new FormData(uploadForm);
 
-            // Remove actual files.
-            // The PDF/thumbnail are already on Cloudinary.
+            // Never send the actual files to Vercel.
             formData.delete('pdf');
             formData.delete('thumbnail');
 
             formData.append(
                 'pdf_path',
-                pdfResult.secure_url
+                pdfUrl
             );
 
             formData.append(
@@ -324,16 +326,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 thumbnailUrl
             );
 
-            const saveResponse = await fetch(
-                '/upload',
-                {
+            // ----------------------------------------------------
+            // 5. Save note in MySQL
+            // ----------------------------------------------------
+            const saveResponse =
+                await fetch('/upload', {
                     method: 'POST',
-                    body: formData
-                }
-            );
+                    body: formData,
+                    credentials: 'same-origin'
+                });
 
             if (!saveResponse.ok) {
-                const text = await saveResponse.text();
+                const text =
+                    await saveResponse.text();
 
                 console.error(
                     'Save note failed:',
@@ -346,14 +351,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
-            // ------------------------------------------------
-            // Follow server redirect
-            // ------------------------------------------------
+            // The server returns a redirect.
             window.location.href =
                 saveResponse.url;
 
         } catch (error) {
-            console.error('Upload error:', error);
+            console.error(
+                'Complete upload error:',
+                error
+            );
 
             showToast(
                 error.message ||
@@ -364,8 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = false;
 
             submitBtn.innerHTML = `
-                <svg width="17" height="17" viewBox="0 0 24 24"
-                    fill="none">
+                <svg width="17" height="17"
+                     viewBox="0 0 24 24"
+                     fill="none">
                     <path
                         d="M12 4v13m0 0l-4.5-4.5M12 17l4.5-4.5M4 21h16"
                         stroke="currentColor"
